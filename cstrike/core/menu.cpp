@@ -37,8 +37,6 @@ static const std::pair<const char*, const std::size_t> arrColors[] = {
 };
 
 static constexpr const char* arrMenuAddition[] = {
-	"dim",
-	"particle",
 	"glow"
 };
 #pragma endregion
@@ -50,6 +48,9 @@ void MENU::RenderMainWindow()
 
 	// @test: we should always update the animation?
 	animMenuDimBackground.Update(io.DeltaTime, style.AnimationSpeed);
+
+	// @note: we call this every frame because we utilizing rainbow color as well! however it's not really performance friendly?
+	UpdateStyle(&style);
 	if (!bMainWindowOpened)
 		return;
 
@@ -57,22 +58,19 @@ void MENU::RenderMainWindow()
 	const float flBackgroundAlpha = animMenuDimBackground.GetValue(1.f);
 	flDpiScale = D::CalculateDPI(C_GET(int, Vars.nDpiScale));
 
-	// @note: we call this every frame because we utilizing rainbow color as well! however it's not really performance friendly?
-	UpdateStyle(&style);
-
-	if (flBackgroundAlpha > 0.f)
+	/*if (flBackgroundAlpha > 0.f)
 	{
 		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_DIM_BACKGROUND)
 			D::AddDrawListRect(ImGui::GetBackgroundDrawList(), ImVec2(0, 0), vecScreenSize, C_GET(ColorPickerVar_t, Vars.colPrimtv1).colValue.Set<COLOR_A>(125 * flBackgroundAlpha), DRAW_RECT_FILLED);
 
 		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_BACKGROUND_PARTICLE)
 			menuParticle.Render(ImGui::GetBackgroundDrawList(), vecScreenSize, flBackgroundAlpha);
-	}
+	}*/
 
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, flBackgroundAlpha);
 
 	ImGui::SetNextWindowPos(ImVec2(vecScreenSize.x * 0.5f, vecScreenSize.y * 0.5f), ImGuiCond_Once, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 350 * flDpiScale), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 600 * flDpiScale), ImGuiCond_Always);
 
 	// handle main window get out of screen bound
 	// @note: we call this here so it will override the previous SetNextWindowPos
@@ -116,7 +114,7 @@ void MENU::RenderMainWindow()
 			D::AddDrawListShadowRect(ImGui::GetBackgroundDrawList(), vecMenuPos, vecMenuPos + vecMenuSize, C_GET(ColorPickerVar_t, Vars.colAccent0).colValue, 64.f * flDpiScale, style.WindowRounding, ImDrawFlags_ShadowCutOutShapeBackground);
 
 		const ImVec2 vecTitleSize = FONT::pMenu[C_GET(int, Vars.nDpiScale)]->CalcTextSizeA(12.f * flDpiScale, FLT_MAX, -1.f, CS_XOR("Leerware"));
-		pDrawList->AddText(ImVec2(vecMenuPos.x + vecMenuSize.x - style.WindowPadding.x - vecTitleSize.x, vecMenuPos.y + style.WindowPadding.y), ImGui::GetColorU32(ImGuiCol_Text), CS_XOR("asphyxia"));
+		pDrawList->AddText(ImVec2(vecMenuPos.x + vecMenuSize.x - style.WindowPadding.x - vecTitleSize.x, vecMenuPos.y + style.WindowPadding.y), ImGui::GetColorU32(ImGuiCol_Text), CS_XOR("Leerware"));
 
 		static const CTab arrTabs[] = {
 			{ "Ragebot", &T::RageBot },
@@ -187,16 +185,16 @@ void MENU::RenderOverlayPreviewWindow()
 		// only render context preview if overlay is enabled
 		context.Render(pDrawList, vecBox);
 
-		if (ImGui::BeginPopup(CS_XOR("Context##box.component"), ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+		if (ImGui::BeginPopup(CS_XOR("context##box.component"), ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 
-			ImGui::ColorEdit4(CS_XOR("Primary Color##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).colPrimary);
-			ImGui::ColorEdit4(CS_XOR("Outline Color##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).colOutline);
+			ImGui::ColorEdit4(CS_XOR("primary color##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).colPrimary);
+			ImGui::ColorEdit4(CS_XOR("outline color##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).colOutline);
 			ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.75f);
-			ImGui::SliderFloat(CS_XOR("Thickness##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).flThickness, 1.f, 5.f, CS_XOR("%.1f"), ImGuiSliderFlags_AlwaysClamp);
+			ImGui::SliderFloat(CS_XOR("thickness##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).flThickness, 1.f, 5.f, CS_XOR("%.1f"), ImGuiSliderFlags_AlwaysClamp);
 			ImGui::SetNextItemWidth(ImGui::GetWindowWidth() * 0.75f);
-			ImGui::SliderFloat(CS_XOR("Rounding##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).flRounding, 1.f, 5.f, CS_XOR("%.1f"), ImGuiSliderFlags_AlwaysClamp);
+			ImGui::SliderFloat(CS_XOR("rounding##box.component"), &C_GET(FrameOverlayVar_t, Vars.overlayBox).flRounding, 1.f, 5.f, CS_XOR("%.1f"), ImGuiSliderFlags_AlwaysClamp);
 
 			ImGui::PopStyleVar();
 
@@ -224,8 +222,8 @@ void MENU::RenderWatermark()
 #ifdef _DEBUG
 		ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), CS_XOR("debug"));
 #endif
-		if (CRT::StringString(GetCommandLineW(), CS_XOR(L"-Insecure")) != nullptr)
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), CS_XOR("Insecure"));
+		if (CRT::StringString(GetCommandLineW(), CS_XOR(L"-insecure")) != nullptr)
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), CS_XOR("insecure"));
 
 		if (I::Engine->IsInGame())
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CS_XOR("in-game"));
@@ -322,6 +320,11 @@ void MENU::UpdateStyle(ImGuiStyle* pStyle)
 	C_GET(ColorPickerVar_t, Vars.colAccent1).UpdateRainbow(); // (dark)
 	C_GET(ColorPickerVar_t, Vars.colAccent2).UpdateRainbow(); // (darker)
 
+	C_GET(ColorPickerVar_t, Vars.colWorld).UpdateRainbow();		// (world color)
+	C_GET(ColorPickerVar_t, Vars.colMisc).UpdateRainbow();		// (misc color)
+	C_GET(ColorPickerVar_t, Vars.colProps).UpdateRainbow();		// (props color)
+	C_GET(ColorPickerVar_t, Vars.colParticles).UpdateRainbow(); // (particles color)
+
 	// update animation speed
 	style.AnimationSpeed = C_GET(float, Vars.flAnimationSpeed) / 10.f;
 }
@@ -371,7 +374,7 @@ void T::AntiAim()
 
 void T::LegitBot()
 {
-	ImGui::BeginChild(CS_XOR("Legitbot.aimbot"), ImVec2{}, true, ImGuiWindowFlags_MenuBar);
+	ImGui::BeginChild(CS_XOR("legitbot.aimbot"), ImVec2{}, true, ImGuiWindowFlags_MenuBar);
 	{
 		if (ImGui::BeginMenuBar())
 		{
@@ -380,7 +383,7 @@ void T::LegitBot()
 		}
 
 		ImGui::Checkbox(CS_XOR("Enable##aimbot"), &C_GET(bool, Vars.bLegitbot));
-		ImGui::SliderFloat(CS_XOR("Aim Range"), &C_GET(float, Vars.flAimRange), 1.f, 135.f);
+		ImGui::SliderFloat(CS_XOR("FOV"), &C_GET(float, Vars.flAimRange), 1.f, 135.f);
 		ImGui::SliderFloat(CS_XOR("Smoothing"), &C_GET(float, Vars.flSmoothing), 1.f, 100.f);
 
 		ImGui::NewLine();
@@ -404,7 +407,7 @@ void T::Visuals()
 	ImGui::Columns(2, CS_XOR("##visuals_collumns"), false);
 	{
 		static float flOverlayChildSize = 0.f;
-		ImGui::BeginChild(CS_XOR("Visuals.overlay"), ImVec2(0.f, flOverlayChildSize), true, ImGuiWindowFlags_MenuBar);
+		ImGui::BeginChild(CS_XOR("visuals.overlay"), ImVec2(0.f, flOverlayChildSize), true, ImGuiWindowFlags_MenuBar);
 		{
 			if (ImGui::BeginMenuBar())
 			{
@@ -442,8 +445,8 @@ void T::Visuals()
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 
 			ImGui::Checkbox(CS_XOR("Enable##chams"), &C_GET(bool, Vars.bVisualChams));
-			ImGui::Combo(CS_XOR("Materials"), &C_GET(int, Vars.nVisualChamMaterial), CS_XOR("white\0illuminate\0"));
-			ImGui::Checkbox(CS_XOR("Enable Invisible chams##chams"), &C_GET(bool, Vars.bVisualChamsIgnoreZ));
+			ImGui::Combo(CS_XOR("Materials"), &C_GET(int, Vars.nVisualChamMaterial), CS_XOR("White\0Illuminate\0"));
+			ImGui::Checkbox(CS_XOR("Enable Invisible Chams##chams"), &C_GET(bool, Vars.bVisualChamsIgnoreZ));
 
 			ImGui::ColorEdit4(CS_XOR("Visible Color"), &C_GET(Color_t, Vars.colVisualChams));
 			if (C_GET(bool, Vars.bVisualChamsIgnoreZ))
@@ -463,7 +466,16 @@ void T::Visuals()
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 			ImGui::Checkbox("Third Person", &C_GET(bool, Vars.bThirdPerson));
-			ImGui::SliderInt("Distance", &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, "%d units", ImGuiSliderFlags_AlwaysClamp);
+			if (C_GET(bool, Vars.bThirdPerson))
+				ImGui::SliderInt("Distance", &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, "%d Units", ImGuiSliderFlags_AlwaysClamp);
+			ImGui::Checkbox("World Modulation", &C_GET(bool, Vars.bWorldModulation));
+			if (C_GET(bool, Vars.bWorldModulation))
+			{
+				ImGui::ColorEdit4("World##color", &C_GET(ColorPickerVar_t, Vars.colWorld));
+				ImGui::ColorEdit4("Misc##color", &C_GET(ColorPickerVar_t, Vars.colMisc));
+				ImGui::ColorEdit4("Props##color", &C_GET(ColorPickerVar_t, Vars.colProps));
+				ImGui::ColorEdit4("Particles##color", &C_GET(ColorPickerVar_t, Vars.colParticles));
+			}
 			ImGui::PopStyleVar();
 		}
 		ImGui::EndChild();
@@ -496,7 +508,7 @@ void T::Miscellaneous()
 			if (ImGui::Button(CS_XOR("Unlock Hidden cvars"), ImVec2(-1, 15 * MENU::flDpiScale)))
 			{
 				I::Cvar->UnlockHiddenCVars();
-				NOTIFY::Push({ N_TYPE_INFO, CS_XOR("Unlocked All Hidden cvars") });
+				NOTIFY::Push({ N_TYPE_INFO, CS_XOR("unlocked all hidden cvars") });
 			}
 
 			ImGui::PopStyleColor();
@@ -515,11 +527,11 @@ void T::Miscellaneous()
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 
-			ImGui::Checkbox(CS_XOR("Half Ducking"), &C_GET(bool, Vars.bHalfDuck));
+			ImGui::Checkbox(CS_XOR("Half Duck"), &C_GET(bool, Vars.bHalfDuck));
 
 			ImGui::Checkbox(CS_XOR("Bunnyhop"), &C_GET(bool, Vars.bAutoBHop));
 
-			ImGui::Checkbox(CS_XOR("Auto Strafe"), &C_GET(bool, Vars.bAutoStrafe));
+			ImGui::Checkbox(CS_XOR("Autostrafe"), &C_GET(bool, Vars.bAutoStrafe));
 
 			ImGui::PopStyleVar();
 		}
@@ -538,7 +550,7 @@ void T::Miscellaneous()
 			}
 
 			static const CTab arrSettingTabs[] = {
-				CTab{ "Configs", []()
+				CTab{ "Configuration", []()
 				{
 					ImGui::Columns(2, CS_XOR("#CONFIG"), false);
 					{
@@ -594,7 +606,7 @@ void T::Miscellaneous()
 							}
 						}
 						if (ImGui::IsItemHovered())
-							ImGui::SetTooltip(CS_XOR("Press enter to create new Config"));
+							ImGui::SetTooltip(CS_XOR("Press enter to create new Configuration"));
 
 						if (ImGui::Button(CS_XOR("Save"), ImVec2(-1, 15 * MENU::flDpiScale)))
 							C::SaveFile(nSelectedConfig);
@@ -617,7 +629,7 @@ void T::Miscellaneous()
 					{
 						CRT::String_t<MAX_PATH> szCurrentConfig(C::vecFileNames[nSelectedConfig]);
 
-						ImGui::Text(CS_XOR("Are you sure you want to remove \"%s\" config?"), szCurrentConfig);
+						ImGui::Text(CS_XOR("Are you sure you want to remove \"%s\" Configuration?"), szCurrentConfig);
 						ImGui::Spacing();
 
 						if (ImGui::Button(CS_XOR("No"), ImVec2(ImGui::GetContentRegionAvail().x / 2.f, 0)))
@@ -661,7 +673,7 @@ void T::Miscellaneous()
 
 					ImGui::SliderFloat(CS_XOR("Animation Speed"), &C_GET(float, Vars.flAnimationSpeed), 1.f, 10.f);
 
-					ImGui::SeparatorText(CS_XOR("Colors Pallete"));
+					ImGui::SeparatorText(CS_XOR("Menu Colors"));
 
 					ImGui::PushItemWidth(-1);
 
@@ -693,7 +705,6 @@ void T::Miscellaneous()
 
 void T::SkinsChanger()
 {
-	ImGui::TextUnformatted(CS_XOR("in work AAHHHHHHHHH FUCK SKIN CHANGERSSS"));
 }
 
 #pragma endregion

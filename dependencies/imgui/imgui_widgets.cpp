@@ -5295,7 +5295,7 @@ bool ImGui::ColorEdit4(const char* label, float col[4], ImGuiColorEditFlags flag
             if (g.CurrentWindow->BeginCount == 1)
             {
                 picker_active_window = g.CurrentWindow;
-                // modify by asphyxia
+                // modified by asphyxia
                 //if (label != label_display_end)
                 //{
                 //    TextEx(label, label_display_end);

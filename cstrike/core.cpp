@@ -42,7 +42,7 @@ bool CORE::GetWorkingPath(wchar_t* wszDestination)
 	// get path to user documents
 	if (SUCCEEDED(::SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_CREATE, nullptr, &wszPathToDocuments)))
 	{
-		CRT::StringCat(CRT::StringCopy(wszDestination, wszPathToDocuments), CS_XOR(L"\\Leerware\\"));
+		CRT::StringCat(CRT::StringCopy(wszDestination, wszPathToDocuments), CS_XOR(L"\\.Leerware\\"));
 		bSuccess = true;
 
 		// create directory if it doesn't exist
@@ -174,9 +174,9 @@ static bool Setup(HMODULE hModule)
 
 	// @note: this doesn't affect much, but it's good to know if we're using different version of the game
 	if (CRT::StringCompare(I::Engine->GetProductVersionString(), CS_PRODUCTSTRINGVERSION) != 0)
-		L_PRINT(LOG_WARNING) << L::SetColor(LOG_COLOR_FORE_YELLOW | LOG_COLOR_FORE_INTENSITY) << CS_XOR("version mismatch! local CS2 version: ") << CS_PRODUCTSTRINGVERSION << CS_XOR(", current CS2 version: ") << I::Engine->GetProductVersionString() << CS_XOR(". leerware might not function as normal.");
+		L_PRINT(LOG_WARNING) << L::SetColor(LOG_COLOR_FORE_YELLOW | LOG_COLOR_FORE_INTENSITY) << CS_XOR("version mismatch! local CS2 version: ") << CS_PRODUCTSTRINGVERSION << CS_XOR(", current CS2 version: ") << I::Engine->GetProductVersionString() << CS_XOR(". Leerware might not function as normal.");
 
-	L_PRINT(LOG_NONE) << L::SetColor(LOG_COLOR_FORE_CYAN | LOG_COLOR_FORE_INTENSITY) << CS_XOR("leerware initialization completed, version: ") << CS_STRINGIFY(CS_VERSION);
+	L_PRINT(LOG_NONE) << L::SetColor(LOG_COLOR_FORE_CYAN | LOG_COLOR_FORE_INTENSITY) << CS_XOR("Leerware initialization completed, version: ") << CS_STRINGIFY(CS_VERSION);
 	return true;
 }
 

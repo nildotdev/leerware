@@ -31,6 +31,52 @@ const Vector_t& CCSPlayerController::GetPawnOrigin()
 	return pPlayerPawn->GetSceneOrigin();
 }
 
+C_CSWeaponBase* CCSPlayerController::GetPlayerWeapon()
+{
+	CBaseHandle pPlayerHandle = this->GetPawnHandle();
+	if (!pPlayerHandle.IsValid())
+		return nullptr;
+	auto pPlayer = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(pPlayerHandle);
+	if (!pPlayer || !pPlayer->GetWeaponServices())
+		return nullptr;
+
+	CBaseHandle hActiveWeapon = pPlayer->GetWeaponServices()->GetActiveWeapon();
+
+	if (!hActiveWeapon.IsValid())
+		return nullptr;
+
+	C_CSWeaponBase* pWeapon = I::GameResourceService->pGameEntitySystem->Get<C_CSWeaponBase>(hActiveWeapon);
+
+	return pWeapon;
+}
+
+bool CCSPlayerController::IsThrowingGrenade()
+{
+	C_CSWeaponBase* pBaseWeapon = this->GetPlayerWeapon();
+	if (!pBaseWeapon)
+		return false;
+
+	if (!this->IsPawnAlive())
+		return false;
+
+	const float flServerTime = TICKS_TO_TIME(this->GetTickBase());
+	const short nDefinitionIndex = pBaseWeapon->GetAttributeManager()->GetItem()->GetItemDefinitionIndex();
+	CCSWeaponBaseVData* pWeaponBaseVData = pBaseWeapon->GetWeaponVData();
+	if (!pWeaponBaseVData)
+		return false;
+
+	if (pWeaponBaseVData->GetWeaponType() == WEAPONTYPE_GRENADE)
+	{
+		C_BaseCSGrenade* pGrenade = reinterpret_cast<C_BaseCSGrenade*>(pBaseWeapon);
+		if (pGrenade != nullptr)
+		{
+			return pGrenade->GetThrowTime() > 0.f;
+		}
+	}
+
+	return false;
+}
+
 C_BaseEntity* C_BaseEntity::GetLocalPlayer()
 {
 	const int nIndex = I::Engine->GetLocalPlayer();
@@ -73,12 +119,62 @@ int C_CSPlayerPawn::GetAssociatedTeam()
 	return nTeam;
 }
 
-bool C_CSPlayerPawn::CanAttack(const float flServerTime)
+bool C_CSPlayerPawn::CanAttack()
 {
-	// check is player ready to attack
-	if (CCSPlayer_WeaponServices* pWeaponServices = this->GetWeaponServices(); pWeaponServices != nullptr)
-		if (this->IsWaitForNoAttack() || pWeaponServices->GetNextAttack() > flServerTime)
-			return false;
+	CCSPlayerController* pPlayerController = I::GameResourceService->pGameEntitySystem->Get<CCSPlayerController>(this->GetControllerHandle());
+	if (!pPlayerController)
+		return false;
+	const float flServerTime = TICKS_TO_TIME(pPlayerController->GetTickBase());
+
+	CPlayer_WeaponServices* pPlayerWeaponServices = this->GetWeaponServices();
+	if (!pPlayerWeaponServices)
+		return false;
+	if (!pPlayerWeaponServices->GetActiveWeapon().IsValid())
+		return false;
+
+	C_CSWeaponBaseGun* pBaseWeapon = I::GameResourceService->pGameEntitySystem->Get<C_CSWeaponBaseGun>(pPlayerWeaponServices->GetActiveWeapon());
+	if (!pBaseWeapon)
+		return false;
+
+	C_AttributeContainer* pAttributeManager = pBaseWeapon->GetAttributeManager();
+	if (!pAttributeManager)
+		return false;
+
+	C_EconItemView* pItem = pAttributeManager->GetItem();
+	if (!pItem)
+		return false;
+
+	short nDefinitionIndex = pItem->GetItemDefinitionIndex();
+
+	CCSWeaponBaseVData* WpnData = pBaseWeapon->GetWeaponVData();
+	if (!WpnData)
+		return false;
+
+	// is weapon ready to shoot
+	if (pBaseWeapon->GetNextPrimaryAttackTick() > static_cast<int>(pPlayerController->GetTickBase()))
+		return false;
+
+	if (WpnData->GetWeaponType() == WEAPONTYPE_KNIFE)
+		return true;
+
+	// is player ready to shoot
+	/*if (pPlayerWeaponServices->GetNextAttack() > flServerTime)
+		return false;*/
+
+	// check is have ammo
+	if (pBaseWeapon->GetClip1() <= 0)
+		return false;
+
+	// check is weapon with burst mode
+	if ((nDefinitionIndex == WEAPON_FAMAS || nDefinitionIndex == WEAPON_GLOCK_18) &&
+	// check is burst mode
+	pBaseWeapon->IsBurstMode() && pBaseWeapon->GetBurstShotsRemaining() > 0)
+		return true;
+
+	// check for revolver cocking ready
+	// this is incorrect, but can't be bothered to fix this
+	if (nDefinitionIndex == WEAPON_R8_REVOLVER && pBaseWeapon->GetPostponeFireReadyFrac() > flServerTime)
+		return false;
 
 	return true;
 }
