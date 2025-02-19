@@ -92,7 +92,7 @@ R"(<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:g
 	 "F_TRANSLUCENT" = 1
 	 "F_IGNOREZ" = 1
  
-	 "F_DISABLE_Z_BUFFERING" = 0
+	 "F_DISABLE_Z_BUFFERING" = 1
 	 
 	 "F_RENDER_BACKFACES" = 0
 	 

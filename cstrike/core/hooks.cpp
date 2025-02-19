@@ -133,6 +133,10 @@ bool H::Setup()
 		return false;
 	L_PRINT(LOG_INFO) << CS_XOR("\"IsRelativeMouseMode\" hook has been created");
 
+	if (!hkRenderBatchList.Create(MEM::FindPattern(SCENESYSTEM_DLL, CS_XOR("40 53 48 83 EC ? 83 79 ? ? 48 8B D9 0F 8C")), reinterpret_cast<void*>(&RenderBatchList)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"RenderBatchList\" hook has been created");
+
 	return true;
 }
 
@@ -304,4 +308,97 @@ void* H::IsRelativeMouseMode(void* pThisptr, bool bActive)
 		return oIsRelativeMouseMode(pThisptr, false);
 
 	return oIsRelativeMouseMode(pThisptr, bActive);
+}
+
+void H::RenderBatchList(void* a1)
+{
+	const auto oOriginal = hkRenderBatchList.GetOriginal();
+	if (!C_GET(bool, Vars.bWorldModulation))
+	{
+		oOriginal(a1);
+		return;
+	}
+	void** SceneObjectDesc = *reinterpret_cast<void***>(reinterpret_cast<uintptr_t>(a1) + 0x38);
+
+	if (SceneObjectDesc)
+	{
+		const char* something = reinterpret_cast<const char*(__fastcall*)(void*)>(*reinterpret_cast<void***>(SceneObjectDesc)[0])(SceneObjectDesc);
+		auto classname = std::string_view(something);
+		auto v10 = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(a1) + 0x18);
+
+		class CAggregateSceneObjectData
+		{
+		public:
+			MEM_PAD(0x38);
+			Color_t m_rgba;
+			MEM_PAD(0x8);
+		};
+
+		class CAggregateSceneObject /*: public CSceneObject*/
+		{
+		public:
+			MEM_PAD(0x120);
+			int count;
+			MEM_PAD(0x4);
+			CAggregateSceneObjectData* data;
+		};
+
+		class CMeshDrawPrimitive_t
+		{
+		public:
+			MEM_PAD(0x18);
+			CAggregateSceneObject* m_pObject;
+			CMaterial2* m_pMaterial;
+			MEM_PAD(0x28);
+			Color_t m_rgba;
+		};
+
+		uint32_t count = *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(a1) + 0x30);
+
+		if (v10)
+		{
+			for (uint32_t i = 0; i < count; ++i)
+			{
+				CMeshDrawPrimitive_t* meshDraw = (CMeshDrawPrimitive_t*)(reinterpret_cast<uintptr_t>(v10) + (0x68 * i));
+
+				if (!meshDraw)
+					continue;
+
+				// Particles, e.g. molotov
+				if (classname.find("CParticleObjectDesc") != std::string::npos)
+				{
+					meshDraw->m_rgba = C_GET(ColorPickerVar_t, Vars.colParticles).colValue;
+				}
+
+				// World modulation
+				if (classname.find("CAnimatableSceneObjectDesc") != std::string::npos)
+				{
+					auto materialName = std::string_view(meshDraw->m_pMaterial->GetName());
+					if (materialName.find("props") != std::string::npos)
+					{
+						meshDraw->m_rgba = C_GET(ColorPickerVar_t, Vars.colProps).colValue;
+					}
+				}
+
+				if (classname.find("CBaseSceneObjectDesc") != std::string::npos)
+				{
+					meshDraw->m_rgba = C_GET(ColorPickerVar_t, Vars.colMisc).colValue;
+				}
+
+				if (classname.find("CAggregateSceneObjectDesc") != std::string::npos)
+				{
+					if (meshDraw->m_pObject)
+					{
+						for (int j = 0; j < meshDraw->m_pObject->count; ++j)
+						{
+							CAggregateSceneObjectData& data = meshDraw->m_pObject->data[j];
+							data.m_rgba = C_GET(ColorPickerVar_t, Vars.colWorld).colValue;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	oOriginal(a1);
 }

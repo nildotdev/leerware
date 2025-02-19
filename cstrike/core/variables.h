@@ -40,10 +40,8 @@ using MenuAddition_t = unsigned int;
 enum EMenuAddition : MenuAddition_t
 {
 	MENU_ADDITION_NONE = 0U,
-	MENU_ADDITION_DIM_BACKGROUND = 1 << 0,
-	MENU_ADDITION_BACKGROUND_PARTICLE = 1 << 1,
-	MENU_ADDITION_GLOW = 1 << 2,
-	MENU_ADDITION_ALL = MENU_ADDITION_DIM_BACKGROUND | MENU_ADDITION_BACKGROUND_PARTICLE | MENU_ADDITION_GLOW
+	MENU_ADDITION_GLOW = 1 << 0,
+	MENU_ADDITION_ALL = MENU_ADDITION_GLOW
 };
 #pragma endregion
 
@@ -72,6 +70,12 @@ struct Variables_t
 
 	C_ADD_VARIABLE(bool, bThirdPerson, false);
 	C_ADD_VARIABLE(int, nThirdPersonDistance, 50.f);
+
+	C_ADD_VARIABLE(bool, bWorldModulation, false);
+	C_ADD_VARIABLE(ColorPickerVar_t, colWorld, ColorPickerVar_t(255, 255, 255));
+	C_ADD_VARIABLE(ColorPickerVar_t, colMisc, ColorPickerVar_t(255, 255, 255));
+	C_ADD_VARIABLE(ColorPickerVar_t, colProps, ColorPickerVar_t(255, 255, 255));
+	C_ADD_VARIABLE(ColorPickerVar_t, colParticles, ColorPickerVar_t(255, 255, 255));
 #pragma endregion
 
 #pragma region variables_misc
@@ -86,7 +90,7 @@ struct Variables_t
 #pragma region variables_menu
 	C_ADD_VARIABLE(unsigned int, nMenuKey, VK_INSERT);
 	C_ADD_VARIABLE(unsigned int, nPanicKey, VK_END);
-	C_ADD_VARIABLE(int, nDpiScale, 0);
+	C_ADD_VARIABLE(int, nDpiScale, MISC_DPISCALE_150);
 
 	/*
 	 * color navigation:

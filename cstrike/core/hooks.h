@@ -86,6 +86,7 @@ namespace H
 	void CS_FASTCALL OverrideView(void* pClientModeCSNormal, CViewSetup* pSetup);
 	void CS_FASTCALL DrawObject(void* pAnimatableSceneObjectDesc, void* pDx11, CMeshData* arrMeshDraw, int nDataCount, void* pSceneView, void* pSceneLayer, void* pUnk, void* pUnk2);
 	void* IsRelativeMouseMode(void* pThisptr, bool bActive);
+	void RenderBatchList(void* a1);
 
 	/* @section: managers */
 	inline CBaseHookObject<decltype(&Present)> hkPresent = {};
@@ -103,4 +104,5 @@ namespace H
 	inline CBaseHookObject<decltype(&OverrideView)> hkOverrideView = {};
 
 	inline CBaseHookObject<decltype(&DrawObject)> hkDrawObject = {};
+	inline CBaseHookObject<decltype(&RenderBatchList)> hkRenderBatchList = {};
 }

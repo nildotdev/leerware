@@ -108,7 +108,7 @@ bool CONVAR::Dump(const wchar_t* wszFileName)
 	std::tm timePoint;
 	localtime_s(&timePoint, &time);
 
-	CRT::String_t<64> szTimeBuffer(CS_XOR("[%d-%m-%Y %T] asphyxia | convars dump\n\n"), &timePoint);
+	CRT::String_t<64> szTimeBuffer(CS_XOR("[%d-%m-%Y %T] Leerware | convars dump\n\n"), &timePoint);
 
 	// write current date, time and info
 	::WriteFile(hOutFile, szTimeBuffer.Data(), szTimeBuffer.Length(), nullptr, nullptr);

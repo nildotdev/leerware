@@ -7,20 +7,21 @@
 #include "../../sdk/datatypes/usercmd.h"
 
 // used: game's sdk
-#include "../../sdk/interfaces/ccsgoinput.h"
+#include "../../sdk/interfaces/cgameentitysystem.h"
 #include "../../sdk/interfaces/iengineclient.h"
 #include "../../sdk/interfaces/ienginecvar.h"
+#include "../../sdk/interfaces/ccsgoinput.h"
 #include "../../sdk/entity.h"
 
 // used: convars
 #include "../../core/convars.h"
 
 // used: handling OverrideView
-#include "../../core/hooks.h"
+#include "../../sdk/interfaces/cgametracemanager.h"
 #include "../../sdk/datatypes/viewsetup.h"
+#include "../../core/hooks.h"
 #include "../../core/sdk.h"
 #include <DirectXMath.h>
-#include "../../sdk/interfaces/cgametracemanager.h"
 
 QAngle_t savedAngles{};
 
@@ -42,10 +43,7 @@ void F::RAGEBOT::ANTIAIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPl
 	savedAngles.Clamp();
 	I::Input->vecViewAngle = savedAngles.ToVector();
 
-	if (const int32_t nMoveType = pLocalPawn->GetMoveType(); nMoveType == MOVETYPE_NOCLIP || nMoveType == MOVETYPE_LADDER || pLocalPawn->GetWaterLevel() >= WL_WAIST)
-		return;
-
-	if ((pCmd->nButtons.nValue & IN_ATTACK && pLocalPawn->CanAttack(pLocalController->GetTickBase())) || pCmd->nButtons.nValue & IN_USE)
+	if (!ShouldRunAntiAim(pCmd, pBaseCmd, pLocalController, pLocalPawn))
 	{
 		pBaseCmd->pViewAngles->angValue = savedAngles;
 		pCmd->SetSubTickAngle(savedAngles);
@@ -55,6 +53,53 @@ void F::RAGEBOT::ANTIAIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPl
 	pBaseCmd->pViewAngles->angValue = QAngle_t(89.f, MATH::NormalizeYaw(savedAngles.y + 180.f));
 	pBaseCmd->flForwardMove *= -1.f;
 	pBaseCmd->flSideMove *= -1.f;
+}
+
+bool F::RAGEBOT::ANTIAIM::ShouldRunAntiAim(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
+{
+	if (!pCmd || !pBaseCmd || !pLocalController || !pLocalPawn)
+		return false;
+
+	if (pCmd->nButtons.nValue & IN_USE)
+		return false;
+
+	if (!pLocalController->IsPawnAlive())
+		return false;
+
+	if (const int32_t nMoveType = pLocalPawn->GetMoveType(); nMoveType == MOVETYPE_NOCLIP || nMoveType == MOVETYPE_LADDER || pLocalPawn->GetWaterLevel() >= WL_WAIST)
+		return false;
+
+	CCSPlayer_WeaponServices* wep_services = pLocalPawn->GetWeaponServices();
+	if (!wep_services)
+		return true; // There's a reason for this.
+
+	CBaseHandle wep_handle = wep_services->GetActiveWeapon();
+	if (!wep_handle.IsValid())
+		return true; // And this.
+
+	auto wep = I::GameResourceService->pGameEntitySystem->Get<C_CSWeaponBase>(wep_handle);
+	if (!wep)
+		return true; // And this.
+
+	CCSWeaponBaseVData* vData = wep->GetWeaponVData();
+	if (!vData)
+		return true; // There's a reason for everything. Just ask me if you're confused.
+
+	if (vData->GetWeaponType() == WEAPONTYPE_GRENADE)
+	{
+		if (pLocalController->IsThrowingGrenade())
+			return false;
+
+		/*if (pLocalPawn->GetFlags() & FL_ONGROUND && pCmd->nButtons.nValue & IN_JUMP)
+			return false;*/
+
+		return true;
+	}
+
+	if (pCmd->nButtons.nValue & IN_ATTACK && pLocalPawn->CanAttack())
+		return false;
+
+	return true;
 }
 
 Vector_t CalculateCameraPosition(Vector_t anchorPos, float distance, QAngle_t viewAngles)

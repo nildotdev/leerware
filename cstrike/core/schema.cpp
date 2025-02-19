@@ -40,7 +40,7 @@ bool SCHEMA::Setup(const wchar_t* wszFileName, const char* szModuleName)
 	std::tm timePoint;
 	localtime_s(&timePoint, &time);
 
-	CRT::String_t<64> szTimeBuffer(CS_XOR("[%d-%m-%Y %T] asphyxia | schema dump\n\n"), &timePoint);
+	CRT::String_t<64> szTimeBuffer(CS_XOR("[%d-%m-%Y %T] Leerware | schema dump\n\n"), &timePoint);
 
 	// write current date, time and info
 	::WriteFile(hOutFile, szTimeBuffer.Data(), szTimeBuffer.Length(), nullptr, nullptr);

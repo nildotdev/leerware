@@ -11,6 +11,7 @@
 #include "crt.h"
 // used: pe64
 #include "pe64.h"
+#include <unordered_map>
 
 bool MEM::Setup()
 {
@@ -259,8 +260,13 @@ bool MEM::GetSectionInfo(const void* hModuleBase, const char* szSectionName, std
 
 #pragma region memory_search
 
+std::unordered_map<std::string, std::uint8_t*> patternCache = {};
+
 std::uint8_t* MEM::FindPattern(const wchar_t* wszModuleName, const char* szPattern)
 {
+	std::string pattern = std::string(szPattern);
+	if (patternCache.contains(pattern))
+		return patternCache.at(pattern);
 	// convert pattern string to byte array
 	const std::size_t nApproximateBufferSize = (CRT::StringLength(szPattern) >> 1U) + 1U;
 	std::uint8_t* arrByteBuffer = static_cast<std::uint8_t*>(MEM_STACKALLOC(nApproximateBufferSize));
@@ -268,7 +274,10 @@ std::uint8_t* MEM::FindPattern(const wchar_t* wszModuleName, const char* szPatte
 	PatternToBytes(szPattern, arrByteBuffer, szMaskBuffer);
 
 	// @test: use search with straight in-place conversion? do not think it will be faster, cuz of bunch of new checks that gonna be performed for each iteration
-	return FindPattern(wszModuleName, reinterpret_cast<const char*>(arrByteBuffer), szMaskBuffer);
+	std::uint8_t* result = FindPattern(wszModuleName, reinterpret_cast<const char*>(arrByteBuffer), szMaskBuffer);
+	patternCache.insert({pattern, result});
+
+	return result;
 }
 
 std::uint8_t* MEM::FindPattern(const wchar_t* wszModuleName, const char* szBytePattern, const char* szByteMask)

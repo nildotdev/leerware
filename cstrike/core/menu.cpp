@@ -37,8 +37,6 @@ static const std::pair<const char*, const std::size_t> arrColors[] = {
 };
 
 static constexpr const char* arrMenuAddition[] = {
-	"dim",
-	"particle",
 	"glow"
 };
 #pragma endregion
@@ -50,6 +48,9 @@ void MENU::RenderMainWindow()
 
 	// @test: we should always update the animation?
 	animMenuDimBackground.Update(io.DeltaTime, style.AnimationSpeed);
+
+	// @note: we call this every frame because we utilizing rainbow color as well! however it's not really performance friendly?
+	UpdateStyle(&style);
 	if (!bMainWindowOpened)
 		return;
 
@@ -57,17 +58,14 @@ void MENU::RenderMainWindow()
 	const float flBackgroundAlpha = animMenuDimBackground.GetValue(1.f);
 	flDpiScale = D::CalculateDPI(C_GET(int, Vars.nDpiScale));
 
-	// @note: we call this every frame because we utilizing rainbow color as well! however it's not really performance friendly?
-	UpdateStyle(&style);
-
-	if (flBackgroundAlpha > 0.f)
+	/*if (flBackgroundAlpha > 0.f)
 	{
 		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_DIM_BACKGROUND)
 			D::AddDrawListRect(ImGui::GetBackgroundDrawList(), ImVec2(0, 0), vecScreenSize, C_GET(ColorPickerVar_t, Vars.colPrimtv1).colValue.Set<COLOR_A>(125 * flBackgroundAlpha), DRAW_RECT_FILLED);
 
 		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_BACKGROUND_PARTICLE)
 			menuParticle.Render(ImGui::GetBackgroundDrawList(), vecScreenSize, flBackgroundAlpha);
-	}
+	}*/
 
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, flBackgroundAlpha);
 
@@ -76,7 +74,7 @@ void MENU::RenderMainWindow()
 
 	// handle main window get out of screen bound
 	// @note: we call this here so it will override the previous SetNextWindowPos
-	if (ImGuiWindow* pMainWindow = ImGui::FindWindowByName(CS_XOR("asphyxia")); pMainWindow != nullptr)
+	if (ImGuiWindow* pMainWindow = ImGui::FindWindowByName(CS_XOR("Leerware")); pMainWindow != nullptr)
 	{
 		bool bRequireClamp = false;
 		ImVec2 vecWindowPos = pMainWindow->Pos;
@@ -106,7 +104,7 @@ void MENU::RenderMainWindow()
 	}
 
 	// render main window
-	ImGui::Begin(CS_XOR("asphyxia"), &bMainWindowOpened, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
+	ImGui::Begin(CS_XOR("Leerware"), &bMainWindowOpened, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse);
 	{
 		const ImVec2 vecMenuPos = ImGui::GetWindowPos();
 		const ImVec2 vecMenuSize = ImGui::GetWindowSize();
@@ -115,8 +113,8 @@ void MENU::RenderMainWindow()
 		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_GLOW)
 			D::AddDrawListShadowRect(ImGui::GetBackgroundDrawList(), vecMenuPos, vecMenuPos + vecMenuSize, C_GET(ColorPickerVar_t, Vars.colAccent0).colValue, 64.f * flDpiScale, style.WindowRounding, ImDrawFlags_ShadowCutOutShapeBackground);
 
-		const ImVec2 vecTitleSize = FONT::pMenu[C_GET(int, Vars.nDpiScale)]->CalcTextSizeA(12.f * flDpiScale, FLT_MAX, -1.f, CS_XOR("asphyxia"));
-		pDrawList->AddText(ImVec2(vecMenuPos.x + vecMenuSize.x - style.WindowPadding.x - vecTitleSize.x, vecMenuPos.y + style.WindowPadding.y), ImGui::GetColorU32(ImGuiCol_Text), CS_XOR("asphyxia"));
+		const ImVec2 vecTitleSize = FONT::pMenu[C_GET(int, Vars.nDpiScale)]->CalcTextSizeA(12.f * flDpiScale, FLT_MAX, -1.f, CS_XOR("Leerware"));
+		pDrawList->AddText(ImVec2(vecMenuPos.x + vecMenuSize.x - style.WindowPadding.x - vecTitleSize.x, vecMenuPos.y + style.WindowPadding.y), ImGui::GetColorU32(ImGuiCol_Text), CS_XOR("Leerware"));
 
 		static const CTab arrTabs[] = {
 			{ "ragebot", &T::RageBot },
@@ -170,7 +168,7 @@ void MENU::RenderOverlayPreviewWindow()
 		}
 
 		if (const auto& nameOverlayConfig = C_GET(TextOverlayVar_t, Vars.overlayName); nameOverlayConfig.bEnable)
-			context.AddComponent(new CTextComponent(true, SIDE_TOP, DIR_TOP, FONT::pVisual, CS_XOR("asphyxia"), Vars.overlayName));
+			context.AddComponent(new CTextComponent(true, SIDE_TOP, DIR_TOP, FONT::pVisual, CS_XOR("Leerware"), Vars.overlayName));
 
 		if (const auto& healthOverlayConfig = C_GET(BarOverlayVar_t, Vars.overlayHealthBar); healthOverlayConfig.bEnable)
 		{
@@ -230,9 +228,9 @@ void MENU::RenderWatermark()
 		if (I::Engine->IsInGame())
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CS_XOR("in-game"));
 
-		static ImVec2 vecNameSize = ImGui::CalcTextSize(CS_XOR("asphyxia | " __DATE__ " " __TIME__));
+		static ImVec2 vecNameSize = ImGui::CalcTextSize(CS_XOR("Leerware | " __DATE__ " " __TIME__));
 		ImGui::SameLine(ImGui::GetContentRegionMax().x - vecNameSize.x - style.FramePadding.x);
-		ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), CS_XOR("asphyxia | " __DATE__ " " __TIME__));
+		ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), CS_XOR("Leerware | " __DATE__ " " __TIME__));
 	}
 	ImGui::EndMainMenuBar();
 	ImGui::PopFont();
@@ -321,6 +319,11 @@ void MENU::UpdateStyle(ImGuiStyle* pStyle)
 	C_GET(ColorPickerVar_t, Vars.colAccent0).UpdateRainbow(); // (main)
 	C_GET(ColorPickerVar_t, Vars.colAccent1).UpdateRainbow(); // (dark)
 	C_GET(ColorPickerVar_t, Vars.colAccent2).UpdateRainbow(); // (darker)
+
+	C_GET(ColorPickerVar_t, Vars.colWorld).UpdateRainbow();		// (world color)
+	C_GET(ColorPickerVar_t, Vars.colMisc).UpdateRainbow();		// (misc color)
+	C_GET(ColorPickerVar_t, Vars.colProps).UpdateRainbow();		// (props color)
+	C_GET(ColorPickerVar_t, Vars.colParticles).UpdateRainbow(); // (particles color)
 
 	// update animation speed
 	style.AnimationSpeed = C_GET(float, Vars.flAnimationSpeed) / 10.f;
@@ -463,7 +466,16 @@ void T::Visuals()
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 			ImGui::Checkbox("Third person", &C_GET(bool, Vars.bThirdPerson));
-			ImGui::SliderInt("Distance", &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, "%d units", ImGuiSliderFlags_AlwaysClamp);
+			if (C_GET(bool, Vars.bThirdPerson))
+				ImGui::SliderInt("Distance", &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, "%d units", ImGuiSliderFlags_AlwaysClamp);
+			ImGui::Checkbox("World modulation", &C_GET(bool, Vars.bWorldModulation));
+			if (C_GET(bool, Vars.bWorldModulation))
+			{
+				ImGui::ColorEdit4("World##color", &C_GET(ColorPickerVar_t, Vars.colWorld));
+				ImGui::ColorEdit4("Misc##color", &C_GET(ColorPickerVar_t, Vars.colMisc));
+				ImGui::ColorEdit4("Props##color", &C_GET(ColorPickerVar_t, Vars.colProps));
+				ImGui::ColorEdit4("Particles##color", &C_GET(ColorPickerVar_t, Vars.colParticles));
+			}
 			ImGui::PopStyleVar();
 		}
 		ImGui::EndChild();

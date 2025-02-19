@@ -248,7 +248,7 @@ public:
 
 	[[nodiscard]] bool IsOtherEnemy(C_CSPlayerPawn* pOther);
 	[[nodiscard]] int GetAssociatedTeam();
-	[[nodiscard]] bool CanAttack(const float flServerTime);
+	[[nodiscard]] bool CanAttack();
 	[[nodiscard]] std::uint32_t GetOwnerHandleIndex();
 	[[nodiscard]] std::uint16_t GetCollisionMask();
 
@@ -256,6 +256,7 @@ public:
 	SCHEMA_ADD_FIELD(bool, IsDefusing, "C_CSPlayerPawn->m_bIsDefusing");
 	SCHEMA_ADD_FIELD(bool, IsGrabbingHostage, "C_CSPlayerPawn->m_bIsGrabbingHostage");
 	SCHEMA_ADD_FIELD(bool, IsWaitForNoAttack, "C_CSPlayerPawn->m_bWaitForNoAttack");
+	SCHEMA_ADD_FIELD(bool, WasOnGroundLastTick, "C_CSPlayerPawn->m_bOnGroundLastTick");
 	SCHEMA_ADD_FIELD(int, GetShotsFired, "C_CSPlayerPawn->m_iShotsFired");
 	SCHEMA_ADD_FIELD(std::int32_t, GetArmorValue, "C_CSPlayerPawn->m_ArmorValue");
 	SCHEMA_ADD_FIELD(QAngle_t, GetAimPuchAngle, "C_CSPlayerPawn->m_aimPunchAngle");
@@ -273,6 +274,7 @@ public:
 };
 
 // forward decleration
+class C_CSWeaponBase;
 class C_CSWeaponBaseGun;
 class C_BasePlayerWeapon;
 class CCSPlayerController : public CBasePlayerController
@@ -284,6 +286,10 @@ public:
 
 	// @note: always get origin from pawn not controller
 	[[nodiscard]] const Vector_t& GetPawnOrigin();
+
+	[[nodiscard]] C_CSWeaponBase* GetPlayerWeapon();
+
+	[[nodiscard]] bool IsThrowingGrenade();
 
 	SCHEMA_ADD_FIELD(std::uint32_t, GetPing, "CCSPlayerController->m_iPing");
 	SCHEMA_ADD_FIELD(const char*, GetPlayerName, "CCSPlayerController->m_sSanitizedPlayerName");
