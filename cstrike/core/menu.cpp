@@ -70,7 +70,7 @@ void MENU::RenderMainWindow()
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, flBackgroundAlpha);
 
 	ImGui::SetNextWindowPos(ImVec2(vecScreenSize.x * 0.5f, vecScreenSize.y * 0.5f), ImGuiCond_Once, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 350 * flDpiScale), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 600 * flDpiScale), ImGuiCond_Always);
 
 	// handle main window get out of screen bound
 	// @note: we call this here so it will override the previous SetNextWindowPos
@@ -355,7 +355,19 @@ void T::Render(const char* szTabBar, const CTab* arrTabs, const unsigned long lo
 }
 
 void T::RageBot()
-{ }
+{
+	ImGui::BeginChild(CS_XOR("ragebot.rage"), ImVec2{}, true, ImGuiWindowFlags_MenuBar);
+	{
+		if (ImGui::BeginMenuBar())
+		{
+			ImGui::TextUnformatted("ragebot");
+			ImGui::EndMenuBar();
+		}
+
+		ImGui::Checkbox("enable", &C_GET(bool, Vars.bRageEnable));
+	}
+	ImGui::EndChild();
+}
 
 void T::AntiAim()
 {

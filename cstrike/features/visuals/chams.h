@@ -57,7 +57,6 @@ R"(<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:g
 	 "g_flFresnelMax" = 0
 	 "g_flFresnelMin" = 1
 	 
-	 "F_ADDITIVE_BLEND" = 1
 	 "F_BLEND_MODE" = 1
 	 "F_TRANSLUCENT" = 1
 	 "F_IGNOREZ" = 0
@@ -87,7 +86,6 @@ R"(<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:g
 	 "g_flFresnelMax" = 0
 	 "g_flFresnelMin" = 1
 	 
-	 "F_ADDITIVE_BLEND" = 1
 	 "F_BLEND_MODE" = 1
 	 "F_TRANSLUCENT" = 1
 	 "F_IGNOREZ" = 1

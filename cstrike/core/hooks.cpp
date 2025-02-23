@@ -268,7 +268,7 @@ __int64* CS_FASTCALL H::LevelInit(void* pClientModeShared, const char* szNewMap)
 	const auto oLevelInit = hkLevelInit.GetOriginal();
 	// if global variables are not captured during I::Setup or we join a new game, recapture it
 	if (I::GlobalVars == nullptr)
-		I::GlobalVars = *reinterpret_cast<IGlobalVars**>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 15 ?? ?? ?? ?? 48 89 42")));
+		I::GlobalVars = *reinterpret_cast<IGlobalVars**>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 15 ?? ?? ?? ?? 48 89 42")), 0x3));
 	
 	// disable model occlusion
 	I::PVS->Set(false);

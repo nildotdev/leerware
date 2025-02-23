@@ -113,19 +113,20 @@ struct Variables_t
 
 
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv0, ColorPickerVar_t(255, 255, 255)); // (text)
-	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv1, ColorPickerVar_t(50, 55, 70)); // (background)
-	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv2, ColorPickerVar_t(190, 190, 190)); // (disabled)
-	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv3, ColorPickerVar_t(20, 20, 30)); // (control bg)
-	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv4, ColorPickerVar_t(0, 0, 0)); // (border)
+	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv1, ColorPickerVar_t(0, 0, 0, 0)); // (background)
+	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv2, ColorPickerVar_t(255, 255, 255)); // (disabled)
+	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv3, ColorPickerVar_t(0, 0, 0, 150)); // (control bg)
+	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv4, ColorPickerVar_t(0, 0, 0, 120)); // (border)
 
-	C_ADD_VARIABLE(ColorPickerVar_t, colAccent0, ColorPickerVar_t(85, 90, 160)); // (main)
-	C_ADD_VARIABLE(ColorPickerVar_t, colAccent1, ColorPickerVar_t(100, 105, 175)); // (dark)
-	C_ADD_VARIABLE(ColorPickerVar_t, colAccent2, ColorPickerVar_t(115, 120, 190)); // (darker)
+	C_ADD_VARIABLE(ColorPickerVar_t, colAccent0, ColorPickerVar_t(255, 50, 160)); // (main)
+	C_ADD_VARIABLE(ColorPickerVar_t, colAccent1, ColorPickerVar_t(255, 105, 175)); // (dark)
+	C_ADD_VARIABLE(ColorPickerVar_t, colAccent2, ColorPickerVar_t(255, 156, 190)); // (darker)
 #pragma endregion
 #pragma region variables_legitbot
 	C_ADD_VARIABLE(bool, bLegitbot, false);
 	C_ADD_VARIABLE(float, flAimRange, 10.0f);
 	C_ADD_VARIABLE(float, flSmoothing, 10.0f);
+	C_ADD_VARIABLE(bool, bLegitAutoWall, false);
 	C_ADD_VARIABLE(bool, bLegitbotAlwaysOn, false);
 	C_ADD_VARIABLE(unsigned int, nLegitbotActivationKey, VK_HOME);
 #pragma endregion

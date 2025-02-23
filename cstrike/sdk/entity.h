@@ -25,6 +25,24 @@
 // used: entity vdata
 #include "vdata.h"
 
+enum EHitgroups
+{
+	HITGROUP_INVALID = -1,
+	HITGROUP_GENERIC = 0,
+	HITGROUP_HEAD,
+	HITGROUP_CHEST,
+	HITGROUP_STOMACH,
+	HITGROUP_LEFTARM,
+	HITGROUP_RIGHTARM,
+	HITGROUP_LEFTLEG,
+	HITGROUP_RIGHTLEG,
+	HITGROUP_NECK,
+	HITGROUP_UNUSED,
+	HITGROUP_GEAR,
+	HITGROUP_SPECIAL,
+	HITGROUP_COUNT,
+};
+
 using GameTime_t = std::float_t;
 using GameTick_t = std::int32_t;
 
@@ -192,13 +210,22 @@ public:
 	SCHEMA_ADD_FIELD(std::float_t, GetSimulationTime, "C_BaseModelEntity->m_flSimulationTime");
 };
 
-class CPlayer_ItemServices;
+class CPlayer_ItemServices
+{
+public:
+	CS_CLASS_NO_INITIALIZER(CPlayer_ItemServices);
+
+	SCHEMA_ADD_FIELD(bool, m_bHasDefuser, "CCSPlayer_ItemServices->m_bHasDefuser");
+	SCHEMA_ADD_FIELD(bool, m_bHasHelmet, "CCSPlayer_ItemServices->m_bHasHelmet");
+	SCHEMA_ADD_FIELD(bool, m_bHasHeavyArmor, "CCSPlayer_ItemServices->m_bHasHeavyArmor");
+};
 class CPlayer_CameraServices;
 
 class CPlayer_WeaponServices
 {
 public:
 	SCHEMA_ADD_FIELD(CBaseHandle, GetActiveWeapon, "CPlayer_WeaponServices->m_hActiveWeapon");
+	SCHEMA_ADD_FIELD(GameTime_t, GetNextAttack, "CCSPlayer_WeaponServices->m_flNextAttack");
 };
 
 class CCSPlayer_WeaponServices : public CPlayer_WeaponServices
@@ -251,6 +278,7 @@ public:
 	[[nodiscard]] bool CanAttack();
 	[[nodiscard]] std::uint32_t GetOwnerHandleIndex();
 	[[nodiscard]] std::uint16_t GetCollisionMask();
+	[[nodiscard]] bool HasArmor(const int hitgroup);
 
 	SCHEMA_ADD_FIELD(bool, IsScoped, "C_CSPlayerPawn->m_bIsScoped");
 	SCHEMA_ADD_FIELD(bool, IsDefusing, "C_CSPlayerPawn->m_bIsDefusing");

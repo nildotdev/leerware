@@ -46,6 +46,12 @@
     <Filter Include="features\rage">
       <UniqueIdentifier>{2ea44d7f-e0b6-4b74-87e7-ed2084fd87f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="features\penetration">
+      <UniqueIdentifier>{82556ff1-48dc-4a86-8989-d02c166263b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="features\lagcomp">
+      <UniqueIdentifier>{c5bebcde-da68-4ac6-882b-83b461578976}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dependencies\imgui\imconfig.h">
@@ -335,6 +341,12 @@
     <ClInclude Include="features\rage\rage.h">
       <Filter>features\rage</Filter>
     </ClInclude>
+    <ClInclude Include="features\penetration\penetration.h">
+      <Filter>features\penetration</Filter>
+    </ClInclude>
+    <ClInclude Include="features\lagcomp\lagcomp.h">
+      <Filter>features\lagcomp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\dependencies\imgui\imgui.cpp">
@@ -465,6 +477,9 @@
     </ClCompile>
     <ClCompile Include="features\rage\rage.cpp">
       <Filter>features\rage</Filter>
+    </ClCompile>
+    <ClCompile Include="features\penetration\penetration.cpp">
+      <Filter>features\penetration</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

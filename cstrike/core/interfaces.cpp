@@ -176,7 +176,7 @@ bool I::Setup()
 
 	// @ida: #STR: "gpGlocals->rendertime() called while IsInSimulation() is true, "gpGlocals->curtime() called while IsInSimulation() is false
 	// @ida: #STR: "C_SceneEntity::SetupClientOnlyScene:  C" then go up until you see it
-	GlobalVars = *reinterpret_cast<IGlobalVars**>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 15 ?? ?? ?? ?? 48 89 42")));
+	GlobalVars = *reinterpret_cast<IGlobalVars**>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 15 ?? ?? ?? ?? 48 89 42")), 0x3));
 	bSuccess &= (GlobalVars != nullptr);
 
 	// @ida: #STR: "CRenderingWorldSession::OnLoopActivate" go down just a bit

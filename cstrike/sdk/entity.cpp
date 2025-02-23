@@ -121,14 +121,12 @@ int C_CSPlayerPawn::GetAssociatedTeam()
 
 bool C_CSPlayerPawn::CanAttack()
 {
-	CCSPlayerController* pPlayerController = I::GameResourceService->pGameEntitySystem->Get<CCSPlayerController>(this->GetControllerHandle());
-	if (!pPlayerController)
-		return false;
-	const float flServerTime = TICKS_TO_TIME(pPlayerController->GetTickBase());
+	const float flServerTime = I::GlobalVars->flCurrentTime;
 
 	CPlayer_WeaponServices* pPlayerWeaponServices = this->GetWeaponServices();
 	if (!pPlayerWeaponServices)
 		return false;
+
 	if (!pPlayerWeaponServices->GetActiveWeapon().IsValid())
 		return false;
 
@@ -151,15 +149,15 @@ bool C_CSPlayerPawn::CanAttack()
 		return false;
 
 	// is weapon ready to shoot
-	if (pBaseWeapon->GetNextPrimaryAttackTick() > static_cast<int>(pPlayerController->GetTickBase()))
+	if (pBaseWeapon->GetNextPrimaryAttackTick() > TIME_TO_TICKS(flServerTime))
 		return false;
 
 	if (WpnData->GetWeaponType() == WEAPONTYPE_KNIFE)
 		return true;
 
 	// is player ready to shoot
-	/*if (pPlayerWeaponServices->GetNextAttack() > flServerTime)
-		return false;*/
+	if (pPlayerWeaponServices->GetNextAttack() > flServerTime)
+		return false;
 
 	// check is have ammo
 	if (pBaseWeapon->GetClip1() <= 0)
@@ -195,6 +193,26 @@ std::uint16_t C_CSPlayerPawn::GetCollisionMask()
 		return GetCollision()->CollisionMask(); // Collision + 0x38
 
 	return 0;
+}
+
+bool C_CSPlayerPawn::HasArmor(const int hitgroup)
+{
+	if (!this->GetItemServices())
+		return false;
+
+	switch (hitgroup)
+	{
+	case EHitgroups::HITGROUP_HEAD:
+		return this->GetItemServices()->m_bHasHelmet();
+	case EHitgroups::HITGROUP_GENERIC:
+	case EHitgroups::HITGROUP_CHEST:
+	case EHitgroups::HITGROUP_STOMACH:
+	case EHitgroups::HITGROUP_LEFTARM:
+	case EHitgroups::HITGROUP_RIGHTARM:
+		return this->GetItemServices()->m_bHasHeavyArmor();
+	default:
+		return false;
+	}
 }
 
 bool C_CSWeaponBaseGun::CanPrimaryAttack(const int nWeaponType, const float flServerTime)

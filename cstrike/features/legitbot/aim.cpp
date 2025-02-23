@@ -4,6 +4,7 @@
 #include "../../sdk/entity.h"
 #include "../../sdk/interfaces/cgameentitysystem.h"
 #include "../../sdk/interfaces/iengineclient.h"
+#include "../../sdk/interfaces/ccsgoinput.h"
 // used: cusercmd
 #include "../../sdk/datatypes/usercmd.h"
 
@@ -13,7 +14,14 @@
 // used: cheat variables
 #include "../../core/variables.h"
 
+// used: tracing rays
 #include "../../sdk/interfaces/cgametracemanager.h"
+
+// used: auto wall
+#include "../penetration/penetration.h"
+
+// used: accessing fixed angles
+#include "../rage/antiaim.h"
 
 void F::LEGITBOT::AIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
@@ -27,14 +35,12 @@ void F::LEGITBOT::AIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlaye
 	AimAssist(pBaseCmd, pLocalPawn, pLocalController);
 }
 
-QAngle_t GetRecoil(CBaseUserCmdPB* pCmd,C_CSPlayerPawn* pLocal)
+QAngle_t GetRecoil(QAngle_t viewAngles, C_CSPlayerPawn* pLocal)
 {
 	static QAngle_t OldPunch;//get last tick AimPunch angles
 	if (pLocal->GetShotsFired() >= 1)//only update aimpunch while shooting
 	{
-		QAngle_t viewAngles = pCmd->pViewAngles->angValue;
 		QAngle_t delta = viewAngles - (viewAngles + (OldPunch - (pLocal->GetAimPuchAngle() * 2.f)));//get current AimPunch angles delta
-
 		return pLocal->GetAimPuchAngle() * 2.0f;//return correct aimpunch delta
 	}
 	else
@@ -43,7 +49,7 @@ QAngle_t GetRecoil(CBaseUserCmdPB* pCmd,C_CSPlayerPawn* pLocal)
 	}
 }
 
-QAngle_t GetAngularDifference(CBaseUserCmdPB* pCmd, Vector_t vecTarget, C_CSPlayerPawn* pLocal)
+QAngle_t GetAngularDifference(QAngle_t vCurAngle, Vector_t vecTarget, C_CSPlayerPawn* pLocal)
 {
 	// The current position
 	Vector_t vecCurrent = pLocal->GetEyePosition();
@@ -52,18 +58,15 @@ QAngle_t GetAngularDifference(CBaseUserCmdPB* pCmd, Vector_t vecTarget, C_CSPlay
 	QAngle_t vNewAngle = (vecTarget - vecCurrent).ToAngles();
 	vNewAngle.Normalize(); // Normalise it so we don't jitter about
 
-	// Store our current angles
-	QAngle_t vCurAngle = pCmd->pViewAngles->angValue;
-
 	// Find the difference between the two angles (later useful when adding smoothing)
 	vNewAngle -= vCurAngle;
 
 	return vNewAngle;
 }
 
-float GetAngularDistance(CBaseUserCmdPB* pCmd, Vector_t vecTarget, C_CSPlayerPawn* pLocal)
+float GetAngularDistance(QAngle_t viewAngles, Vector_t vecTarget, C_CSPlayerPawn* pLocal)
 {
-	return GetAngularDifference(pCmd, vecTarget, pLocal).Length2D();
+	return GetAngularDifference(viewAngles, vecTarget, pLocal).Length2D();
 }
 
 void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLocalPawn, CCSPlayerController* pLocalController)
@@ -71,6 +74,33 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 	// Check if the activation key is down
 	if (!IPT::IsKeyDown(C_GET(unsigned int, Vars.nLegitbotActivationKey)) && !C_GET(bool, Vars.bLegitbotAlwaysOn))
 		return;
+
+	// Get local player's weapon services
+	CCSPlayer_WeaponServices* wep_services = pLocalPawn->GetWeaponServices();
+	if (!wep_services)
+		return;
+
+	// Get the handle for the currently active weapon
+	CBaseHandle wep_handle = wep_services->GetActiveWeapon();
+	if (!wep_handle.IsValid())
+		return;
+
+	// Get the weapon entity of the active weapon
+	auto wep = I::GameResourceService->pGameEntitySystem->Get<C_CSWeaponBase>(wep_handle);
+	if (!wep)
+		return;
+
+	// Get the VData for autowall
+	CCSWeaponBaseVData* vData = wep->GetWeaponVData();
+	if (!vData)
+		return;
+
+	// Extract our view angles properly
+	QAngle_t* pViewAngles = nullptr;
+	if (C_GET(bool, Vars.bAntiAimEnable))
+		pViewAngles = F::RAGEBOT::ANTIAIM::GetSavedAngles();
+	else
+		pViewAngles = reinterpret_cast<QAngle_t*>(&I::Input->vecViewAngle);
 
 	// The current best distance
 	float flDistance = INFINITY;
@@ -145,22 +175,31 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 		// Get the bone's position
 		Vector_t vecPos = pBoneCache->GetOrigin(iBone);
 
-		// @note: this is a simple example of how to check if the player is visible
+		if (C_GET(bool, Vars.bLegitAutoWall))
+		{
+			F::PENETRATION::c_auto_wall AutoWall;
+			F::PENETRATION::c_auto_wall::data_t hitData;
+			AutoWall.pen(hitData, pLocalPawn->GetEyePosition(), vecPos, pLocalPawn, pPawn, vData);
+			if (!hitData.m_can_hit)
+				continue;
+		}
+		else
+		{
+			// initialize trace, construct filter and initialize ray
+			GameTrace_t trace = GameTrace_t();
+			TraceFilter_t filter = TraceFilter_t(0x1C3003, pLocalPawn, nullptr, 4);
+			Ray_t ray = Ray_t();
 
-		// initialize trace, construct filterr and initialize ray
-		GameTrace_t trace = GameTrace_t();
-		TraceFilter_t filter = TraceFilter_t(0x1C3003, pLocalPawn, nullptr, 4);
-		Ray_t ray = Ray_t();
-
-		// cast a ray from local player eye positon -> player head bone
-		// @note: would recommend checking for nullptrs
-		I::GameTraceManager->TraceShape(&ray, pLocalPawn->GetEyePosition(), pPawn->GetGameSceneNode()->GetSkeletonInstance()->pBoneCache->GetOrigin(6), &filter, &trace);
-		// check if the hit entity is the one we wanted to check and if the trace end point is visible
-		if (trace.m_pHitEntity != pPawn || !trace.IsVisible())// if invisible, skip this entity
-			continue;
+			// cast a ray from local player eye positon -> player head bone
+			// @note: would recommend checking for nullptrs
+			I::GameTraceManager->TraceShape(&ray, pLocalPawn->GetEyePosition(), vecPos, &filter, &trace);
+			// check if the hit entity is the one we wanted to check and if the trace end point is visible
+			if (trace.m_pHitEntity != pPawn || !trace.IsVisible()) // if invisible, skip this entity
+				continue;
+		}
 
 		// Get the distance/weight of the move
-		float flCurrentDistance = GetAngularDistance(pUserCmd, vecPos, pLocalPawn);
+		float flCurrentDistance = GetAngularDistance(*pViewAngles, vecPos, pLocalPawn);
 		if (flCurrentDistance > C_GET(float, Vars.flAimRange))// Skip if this move out of aim range
 			continue;
 		if (pTarget && flCurrentDistance > flDistance) // Override if this is the first move or if it is a better move
@@ -177,14 +216,13 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 		return;
 
 	// Point at them
-	QAngle_t* pViewAngles = &(pUserCmd->pViewAngles->angValue); // Just for readability sake!
 
 	// Find the change in angles
-	QAngle_t vNewAngles = GetAngularDifference(pUserCmd, vecBestPosition, pLocalPawn);
+	QAngle_t vNewAngles = GetAngularDifference(*pViewAngles, vecBestPosition, pLocalPawn);
 
 	// Get the smoothing
 	const float flSmoothing = C_GET(float, Vars.flSmoothing);
-	auto aimPunch =  GetRecoil(pUserCmd, pLocalPawn); //get AimPunch angles
+	auto aimPunch =  GetRecoil(*pViewAngles, pLocalPawn); //get AimPunch angles
 	// Apply smoothing and set angles
 	pViewAngles->x +=  ( vNewAngles.x - aimPunch.x ) / flSmoothing;// minus AimPunch angle to counteract recoil
 	pViewAngles->y +=  ( vNewAngles.y - aimPunch.y ) / flSmoothing;

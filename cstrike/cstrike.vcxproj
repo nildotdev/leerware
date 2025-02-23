@@ -156,6 +156,8 @@
     <ClInclude Include="core\sdk.h" />
     <ClInclude Include="core\variables.h" />
     <ClInclude Include="features.h" />
+    <ClInclude Include="features\lagcomp\lagcomp.h" />
+    <ClInclude Include="features\penetration\penetration.h" />
     <ClInclude Include="features\rage\antiaim.h" />
     <ClInclude Include="features\CRC.h" />
     <ClInclude Include="features\legitbot\aim.h" />
@@ -233,6 +235,7 @@
     <ClCompile Include="..\dependencies\minhook\hde\hde64.c" />
     <ClCompile Include="..\dependencies\minhook\hook.c" />
     <ClCompile Include="..\dependencies\minhook\trampoline.c" />
+    <ClCompile Include="features\penetration\penetration.cpp" />
     <ClCompile Include="features\ragebot.cpp" />
     <ClCompile Include="features\rage\antiaim.cpp" />
     <ClCompile Include="features\legitbot.cpp" />

@@ -43,6 +43,17 @@ class CCSWeaponBaseVData : public CBasePlayerWeaponVData
 public:
 	CS_CLASS_NO_INITIALIZER(CCSWeaponBaseVData);
 
+	SCHEMA_ADD_FIELD(const char*, GetWeaponName, "CCSWeaponBaseVData->m_szName");
 	SCHEMA_ADD_FIELD(std::int32_t, GetWeaponType, "CCSWeaponBaseVData->m_WeaponType");
+	SCHEMA_ADD_FIELD(CFiringModeFloat, GetWeaponSpread, "CCSWeaponBaseVData->m_flSpread");
 	SCHEMA_ADD_FIELD(float, GetRange, "CCSWeaponBaseVData->m_flRange");
+	SCHEMA_ADD_FIELD(CFiringModeFloat, GetMaxSpeed, "CCSWeaponBaseVData->m_flMaxSpeed");
+	SCHEMA_ADD_FIELD(CFiringModeFloat, GetInaccuracyStanding, "CCSWeaponBaseVData->m_flInaccuracyStand");
+	SCHEMA_ADD_FIELD(CFiringModeFloat, GetInaccuracyJumpApex, "CCSWeaponBaseVData->m_flInaccuracyJumpApex");
+	SCHEMA_ADD_FIELD(CFiringModeFloat, GetInaccuracyCrouching, "CCSWeaponBaseVData->m_flInaccuracyCrouch");
+	SCHEMA_ADD_FIELD(float, GetRangeModifier, "CCSWeaponBaseVData->m_flRangeModifier");
+	SCHEMA_ADD_FIELD(float, GetPenetration, "CCSWeaponBaseVData->m_flPenetration");
+	SCHEMA_ADD_FIELD(float, GetArmorRatio, "CCSWeaponBaseVData->m_flArmorRatio");
+	SCHEMA_ADD_FIELD(float, GetHeadshotMultiplier, "CCSWeaponBaseVData->m_flHeadshotMultiplier");
+	SCHEMA_ADD_FIELD(int, GetDamage, "CCSWeaponBaseVData->m_nDamage");
 };

@@ -33,6 +33,18 @@ void F::RAGEBOT::ANTIAIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPl
 	if (!pLocalPawn)
 		return;
 
+	if ((pCmd->nButtons.nValue & IN_ATTACK || pCmd->nButtons.nValue & IN_SECOND_ATTACK) && !pLocalPawn->CanAttack())
+	{
+		pCmd->nButtons.nValue &= ~IN_ATTACK;
+		pCmd->nButtons.nValueChanged &= ~IN_ATTACK;
+		pCmd->nButtons.nValueScroll &= ~IN_ATTACK;
+		pBaseCmd->RemoveButtonEvent(IN_ATTACK);
+		pCmd->nButtons.nValue &= ~IN_SECOND_ATTACK;
+		pCmd->nButtons.nValueChanged &= ~IN_SECOND_ATTACK;
+		pCmd->nButtons.nValueScroll &= ~IN_SECOND_ATTACK;
+		pBaseCmd->RemoveButtonEvent(IN_SECOND_ATTACK);
+	}
+
 	if (!pBaseCmd->pViewAngles)
 		return;
 
@@ -100,6 +112,11 @@ bool F::RAGEBOT::ANTIAIM::ShouldRunAntiAim(CUserCmd* pCmd, CBaseUserCmdPB* pBase
 		return false;
 
 	return true;
+}
+
+QAngle_t* F::RAGEBOT::ANTIAIM::GetSavedAngles()
+{
+	return &savedAngles;
 }
 
 Vector_t CalculateCameraPosition(Vector_t anchorPos, float distance, QAngle_t viewAngles)

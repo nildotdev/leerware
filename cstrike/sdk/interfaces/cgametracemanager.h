@@ -88,6 +88,38 @@ public:
 };
 static_assert(sizeof(TraceFilter_t) == 0x40);
 
+
+struct UpdateValue_t
+{
+	float previousLengthMod;
+	float currentLengthMod;
+	MEM_PAD(0x8);
+	int16_t handleIndex;
+	MEM_PAD(0x6);
+};
+
+struct TraceArrElement_t
+{
+	MEM_PAD(0x30);
+};
+
+struct TraceData_t
+{
+	std::int32_t nUnk1;
+	float flUnk2 = 52.0f;
+	void* pArrPointer;
+	std::int32_t nUnk3 = 128U;
+	std::int32_t nUnk4 = static_cast<std::int32_t>(0x80000000);
+	std::array<TraceArrElement_t, 0x80> mArr = {};
+	MEM_PAD(0x8);
+	std::int64_t nNumUpdate;
+	void* pPointerUpdateValue;
+	MEM_PAD(0xC8);
+	Vector_t vecStart;
+	Vector_t vecEnd;
+	MEM_PAD(0x50);
+};
+
 class CGameTraceManager
 {
 public:
@@ -114,5 +146,65 @@ public:
 		#endif
 
 		return oClipRayToEntity(this, pRay, &vecStart, &vecEnd, pPawn, pFilter, pGameTrace);
+	}
+
+	bool HandleBulletPenetration(TraceData_t* trace, void* stats, UpdateValue_t* mod_value, bool draw_showimpacts = false)
+	{
+		using fnHandleBulletPenetration = bool(CS_FASTCALL*)(TraceData_t*, void*, UpdateValue_t*, void*, void*, void*, void*, void*, bool);
+		static fnHandleBulletPenetration oHandleBulletPenetration = reinterpret_cast<fnHandleBulletPenetration>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 8B C4 44 89 48 20 48 89 50 10 48")));
+
+		#ifdef CS_PARANOID
+		CS_ASSERT(oHandleBulletPenetration != nullptr);
+		#endif
+
+		return oHandleBulletPenetration(trace, stats, mod_value, nullptr, nullptr, nullptr, nullptr, nullptr, draw_showimpacts);
+	}
+
+	void Init(TraceFilter_t& filter, C_CSPlayerPawn* skip, uint64_t mask, uint8_t layer, uint16_t unk)
+	{
+		using fnTraceInit = TraceFilter_t*(CS_FASTCALL*)(TraceFilter_t&, C_CSPlayerPawn*, uint64_t, uint8_t, uint16_t);
+		static fnTraceInit oTraceInit = reinterpret_cast<fnTraceInit>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 0F B6 41 37 33")));
+
+		#ifdef CS_PARANOID
+		CS_ASSERT(oTraceInit != nullptr);
+		#endif
+
+		oTraceInit(filter, skip, mask, layer, unk);
+	}
+
+	void CreateTrace(TraceData_t* trace, Vector_t start, Vector_t end, TraceFilter_t& filter, int penetrationCount)
+	{
+		using fnCreateTrace = bool(CS_FASTCALL*)(TraceData_t*, Vector_t, Vector_t, TraceFilter_t, void*, void*, void*, void*, int);
+		static fnCreateTrace oCreateTrace = reinterpret_cast<fnCreateTrace>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC 40 F2")));
+
+		#ifdef CS_PARANOID
+		CS_ASSERT(oCreateTrace != nullptr);
+		#endif
+
+		oCreateTrace(trace, start, end, filter, nullptr, nullptr, nullptr, nullptr, penetrationCount);
+	}
+
+	void InitTraceInfo(GameTrace_t* hit)
+	{
+		using fnInitTraceInfo = bool(CS_FASTCALL*)(GameTrace_t*);
+		static fnInitTraceInfo oInitTraceInfo = reinterpret_cast<fnInitTraceInfo>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 5C 24 ? 57 48 83 EC ? 48 8B D9 33 FF 48 8B 0D ? ? ? ? 48 85 C9")));
+
+		#ifdef CS_PARANOID
+		CS_ASSERT(oInitTraceInfo != nullptr);
+		#endif
+
+		oInitTraceInfo(hit);
+	}
+
+	void GetTraceInfo(TraceData_t* trace, GameTrace_t* hit, float unk, void* unk1)
+	{
+		using fnGetTraceInfo = bool(CS_FASTCALL*)(TraceData_t*, GameTrace_t*, float, void*);
+		static fnGetTraceInfo oGetTraceInfo = reinterpret_cast<fnGetTraceInfo>(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 60 48 8B E9 0F")));
+
+		#ifdef CS_PARANOID
+		CS_ASSERT(oGetTraceInfo != nullptr);
+		#endif
+
+		oGetTraceInfo(trace, hit, unk, unk1);
 	}
 };
