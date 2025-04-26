@@ -8,6 +8,6 @@ class CPVS
 public:
 	void Set(bool bState)
 	{
-		MEM::CallVFunc<void*, 7U>(this, bState);
+		MEM::CallVFunc<void*, 6U>(this, bState);
 	}
 };

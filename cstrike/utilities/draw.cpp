@@ -109,7 +109,7 @@ bool ImGui::HotKey(const char* szLabel, unsigned int* pValue)
 		if (g.ActiveId != nIndex)
 		{
 			CRT::MemorySet(io.MouseDown, 0, sizeof(io.MouseDown));
-			CRT::MemorySet(io.KeysDown, 0, sizeof(io.KeysDown));
+			//CRT::MemorySet(io.KeysDown, 0, sizeof(io.KeysDown));
 			*pValue = 0U;
 		}
 
@@ -209,7 +209,7 @@ bool ImGui::HotKey(const char* szLabel, KeyBind_t* pKeyBind, const bool bAllowSw
 		if (BeginPopup(szUniqueID))
 		{
 			SetNextItemWidth(ImGui::GetWindowWidth() * 0.75f);
-			if (Combo(CS_XOR("##keybind.mode"), reinterpret_cast<int*>(&pKeyBind->nMode), CS_XOR("Hold\0Toggle\0\0")))
+			if (Combo(CS_XOR("##keybind.mode"), reinterpret_cast<int*>(&pKeyBind->nMode), CS_XOR("Hold\0Toggle\0")))
 				CloseCurrentPopup();
 
 			EndPopup();
@@ -274,7 +274,7 @@ bool ImGui::MultiCombo(const char* szLabel, unsigned int* pFlags, const char* co
 		for (int i = 0; i < nItemsCount; i++)
 		{
 			const int nCurrentFlag = (1 << i);
-			if (Selectable(arrItems[i], (*pFlags & nCurrentFlag), ImGuiSelectableFlags_DontClosePopups))
+			if (Selectable(arrItems[i], (*pFlags & nCurrentFlag), ImGuiSelectableFlags_NoAutoClosePopups))
 			{
 				// flip bitflag
 				*pFlags ^= nCurrentFlag;
@@ -338,13 +338,14 @@ bool ImGui::ColorEdit4(const char* szLabel, ColorPickerVar_t* pColorVar, ImGuiCo
 			pColorVar->bRainbow = !pColorVar->bRainbow;
 	}
 
+	std::string hash = std::to_string(FNV1A::Hash(szLabel));
 	// open the context popup
-	OpenPopupOnItemClick(CS_XOR("context##color.picker"), ImGuiPopupFlags_MouseButtonRight);
+	OpenPopupOnItemClick((std::string(CS_XOR("context##color.picker")) + hash).c_str(), ImGuiPopupFlags_MouseButtonRight);
 	// @todo: cleaner code
 	SetNextWindowSize(ImVec2((pColorVar->bRainbow ? 120.f : 60.f) * D::CalculateDPI(C_GET(int, Vars.nDpiScale)), 0.f));
-	if (BeginPopup(CS_XOR("context##color.picker")))
+	if (BeginPopup((std::string(CS_XOR("context##color.picker")) + hash).c_str()))
 	{
-		if (Button(CS_XOR("copy##color.picker"), ImVec2(-1, 15 * D::CalculateDPI(C_GET(int, Vars.nDpiScale)))))
+		if (Button((std::string(CS_XOR("copy##color.picker")) + hash).c_str(), ImVec2(-1, 15 * D::CalculateDPI(C_GET(int, Vars.nDpiScale)))))
 		{
 			// @todo: im32 hex format is AARRGGBB, but we need RRGGBBAA
 			CRT::String_t<64U> szBuffer(CS_XOR("#%X"), pColorVar->colValue.GetU32());
@@ -354,7 +355,7 @@ bool ImGui::ColorEdit4(const char* szLabel, ColorPickerVar_t* pColorVar, ImGuiCo
 			CloseCurrentPopup();
 		}
 
-		if (Button(CS_XOR("paste##color.picker"), ImVec2(-1, 15 * D::CalculateDPI(C_GET(int, Vars.nDpiScale)))))
+		if (Button((std::string(CS_XOR("paste##color.picker")) + hash).c_str(), ImVec2(-1, 15 * D::CalculateDPI(C_GET(int, Vars.nDpiScale)))))
 		{
 			const char* szClipboardText = GetClipboardText();
 			// @note: +1U for '#' prefix skipping
@@ -368,7 +369,7 @@ bool ImGui::ColorEdit4(const char* szLabel, ColorPickerVar_t* pColorVar, ImGuiCo
 		{
 			// @note: urgh padding moment idk
 			SetNextItemWidth(ImGui::GetWindowWidth() * 0.90f + 1.f);
-			SliderFloat(CS_XOR("##speed.color.picker"), &pColorVar->flRainbowSpeed, 0.f, 5.f, CS_XOR("speed: %.1f"), ImGuiSliderFlags_AlwaysClamp);
+			SliderFloat((std::string(CS_XOR("##speed.color.picker")) + hash).c_str(), &pColorVar->flRainbowSpeed, 0.f, 5.f, CS_XOR("speed: %.1f"), ImGuiSliderFlags_AlwaysClamp);
 		}
 
 		EndPopup();
@@ -763,7 +764,7 @@ void D::AddDrawListPolygon(ImDrawList* pDrawList, const ImVec2* vecPoints, const
 		pDrawList->AddPolyline(vecPoints, nPointsCount, colOutline.GetU32(), bClosed, flThickness + 1.0f);
 }
 
-void D::AddDrawListText(ImDrawList* pDrawList, const ImFont* pFont, const ImVec2& vecPosition, const char* szText, const Color_t& colText, const unsigned int uFlags, const Color_t& colOutline, const float flThickness)
+void D::AddDrawListText(ImDrawList* pDrawList, ImFont* pFont, const ImVec2& vecPosition, const char* szText, const Color_t& colText, const unsigned int uFlags, const Color_t& colOutline, const float flThickness)
 {
 	if (pDrawList == nullptr)
 		pDrawList = pDrawListActive;
@@ -774,6 +775,7 @@ void D::AddDrawListText(ImDrawList* pDrawList, const ImFont* pFont, const ImVec2
 	const ImU32 colOutlinePacked = colOutline.GetU32();
 
 	if (uFlags & DRAW_TEXT_DROPSHADOW)
+		// ImFont* font, float font_size, const ImVec2& pos, ImU32 col, const char* text_begin
 		pDrawList->AddText(pFont, pFont->FontSize, vecPosition + ImVec2(flThickness, flThickness), colOutlinePacked, szText);
 	else if (uFlags & DRAW_TEXT_OUTLINE)
 	{

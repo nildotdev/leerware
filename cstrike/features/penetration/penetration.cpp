@@ -3,6 +3,7 @@
 #include "../../sdk/interfaces/ienginecvar.h"
 #include "../../sdk/interfaces/cgametracemanager.h"
 #include "../../sdk/interfaces/cgameentitysystem.h"
+#include "../../core/convars.h"
 
 void F::PENETRATION::c_auto_wall::pen(data_t& data, const Vector_t local_pos, const Vector_t target_pos, C_CSPlayerPawn* localpawn, C_CSPlayerPawn* targetpawn, CCSWeaponBaseVData* wpn_data)
 {
@@ -28,14 +29,10 @@ void F::PENETRATION::c_auto_wall::ScaleDamage(data_t& data, const int hitgroup, 
 		return;
 
 	// ida: server.dll; 80 78 42 00 74 08 F3 0F 59 35 ?? ?? ?? ?? 80 BE 04 0D 00 00 00
-	static CConVar *mp_damage_scale_ct_head = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_ct_head")),
-				   *mp_damage_scale_t_head = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_t_head")),
-				   *mp_damage_scale_ct_body = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_ct_body")),
-				   *mp_damage_scale_t_body = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_t_body"));
+	static CConVar *mp_damage_scale_ct_head = CONVAR::mp_damage_scale_ct_head,
+				   *mp_damage_scale_t_head = CONVAR::mp_damage_scale_t_head,
+				   *mp_damage_scale_ct_body = CONVAR::mp_damage_scale_ct_body,
+				   *mp_damage_scale_t_body = CONVAR::mp_damage_scale_t_body;
 
 	const auto damage_scale_ct_head = mp_damage_scale_ct_head->value.fl,
 			   damage_scale_t_head = mp_damage_scale_t_head->value.fl,
@@ -109,7 +106,7 @@ bool F::PENETRATION::c_auto_wall::FireBullet(data_t& data, float& dmg, bool& val
 
 	TraceData_t trace_data = {};
 	trace_data.pArrPointer = &trace_data.mArr;
-	void* data_pointer = &trace_data;
+	//void* data_pointer = &trace_data;
 	//L_PRINT(LOG_INFO) << "created trace_data | trace_data_pointer:" << L::AddFlags(LOG_MODE_INT_SHOWBASE | LOG_MODE_INT_FORMAT_HEX) << reinterpret_cast<uintptr_t>(data_pointer);
 	//L_PRINT(LOG_INFO) << "created trace_data | pointer:" << L::AddFlags(LOG_MODE_INT_SHOWBASE | LOG_MODE_INT_FORMAT_HEX) << reinterpret_cast<uintptr_t>(trace_data.pArrPointer);
 
@@ -217,14 +214,10 @@ void F::PENETRATION::c_auto_wall::ScaleDamage2(const int iHitGroup, C_CSPlayerPa
 	const bool bHeavyArmor = WeaponServices->m_bHasHeavyArmor();
 
 	// ida: server.dll; 80 78 42 00 74 08 F3 0F 59 35 ?? ?? ?? ?? 80 BE 04 0D 00 00 00
-	static CConVar *mp_damage_scale_ct_head = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_ct_head")),
-				   *mp_damage_scale_t_head = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_t_head")),
-				   *mp_damage_scale_ct_body = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_ct_body")),
-				   *mp_damage_scale_t_body = I::Cvar->Find(
-				   FNV1A::HashConst("mp_damage_scale_t_body"));
+	static CConVar *mp_damage_scale_ct_head = CONVAR::mp_damage_scale_ct_head,
+				   *mp_damage_scale_t_head = CONVAR::mp_damage_scale_t_head,
+				   *mp_damage_scale_ct_body = CONVAR::mp_damage_scale_ct_body,
+				   *mp_damage_scale_t_body = CONVAR::mp_damage_scale_t_body;
 
 	const auto damage_scale_ct_head = mp_damage_scale_ct_head->value.fl,
 			   damage_scale_t_head = mp_damage_scale_t_head->value.fl,

@@ -50,7 +50,7 @@ bool SCHEMA::Setup(const wchar_t* wszFileName, const char* szModuleName)
 		return false;
 
 	const int nTableSize = pTypeScope->hashClasses.Count();
-	L_PRINT(LOG_INFO) << CS_XOR("found \"") << nTableSize << CS_XOR("\" schema classes in module");
+	L_PRINT(LOG_INFO) << CS_XOR("found \"") << nTableSize << CS_XOR("\" schema classes in module: ") << szModuleName;
 
 	// allocate memory for elements
 	UtlTSHashHandle_t* pElements = new UtlTSHashHandle_t[nTableSize + 1U];

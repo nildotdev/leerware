@@ -24,4 +24,6 @@ public:
 	QAngle_t angView; // 0x04F8
 	MEM_PAD(0x14); // 0x0504
 	float flAspectRatio; // 0x0518
+	MEM_PAD(0x71);
+	byte nFlags;
 };

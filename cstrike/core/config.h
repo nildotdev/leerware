@@ -45,6 +45,7 @@ struct KeyBind_t
 		szName(szName), uKey(uKey), nMode(nMode) { }
 
 	bool bEnable = false;
+	bool bHeld = false;
 	const char* szName = nullptr;
 	unsigned int uKey = 0U;
 	EKeyBindMode nMode = EKeyBindMode::HOLD;
@@ -129,6 +130,35 @@ struct BarOverlayVar_t
 
 	Color_t colBackground = Color_t{};
 	Color_t colOutline = Color_t{};
+};
+
+using RageBotHitboxes_t = unsigned int;
+
+enum ERageBotHitboxes : RageBotHitboxes_t
+{
+	HITBOXES_NONE = 0U,
+	HITBOXES_HEAD = 1 << 0,
+	HITBOXES_CHEST = 1 << 1,
+	HITBOXES_STOMACH = 1 << 2,
+	HITBOXES_ARMS = 1 << 3,
+	HITBOXES_LEGS = 1 << 4,
+	HITBOXES_FEET = 1 << 5,
+	HITBOXES_ALL = HITBOXES_HEAD | HITBOXES_CHEST | HITBOXES_STOMACH | HITBOXES_ARMS | HITBOXES_LEGS | HITBOXES_FEET
+};
+
+struct RageBotVars_t
+{
+	constexpr RageBotVars_t(const bool bEnable, const bool bAutoScope = false, const bool bAutoStop = false, const int nHitChance = -1, const int nMinDamage = 0, const int nMinDamageOverride = 0, const int nMultipoint = -1, RageBotHitboxes_t scanHitboxes = ERageBotHitboxes::HITBOXES_NONE) :
+		bEnable(bEnable), bAutoScope(bAutoScope), bAutoStop(bAutoStop), nHitChance(nHitChance), nMinDamage(nMinDamage), nMinDamageOverride(nMinDamageOverride), scanHitboxes(scanHitboxes), nMultipoint(nMultipoint) { }
+
+	bool bEnable = false;
+	bool bAutoScope = false;
+	bool bAutoStop = false;
+	int nHitChance = -1;
+	int nMinDamage = 0;
+	int nMinDamageOverride = 0;
+	int nMultipoint = -1;
+	RageBotHitboxes_t scanHitboxes = ERageBotHitboxes::HITBOXES_NONE;
 };
 
 #pragma endregion

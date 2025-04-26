@@ -14,6 +14,36 @@
  *
  * @note: if variable that uses it intend to call any method that needs to allocate/deallocate should have overloaded constructor/destructor and/or new/delete operators respectively
  */
+template <typename T>
+class CUtlVectorCS2
+{
+public:
+	T* begin() const
+	{
+		return m_Data;
+	}
+
+	T* end() const
+	{
+		return m_Data + m_Size;
+	}
+
+	T At(int i) const
+	{
+		return m_Data[i];
+	}
+
+	T* AtPtr(int i) const
+	{
+		return m_Data + (sizeof(void*) * i);
+	}
+
+	int m_Size;
+	char pad0[0x4];
+	T* m_Data;
+	char pad1[0x8];
+};
+
 template <class T, class A = CUtlMemory<T>>
 class CUtlVector
 {

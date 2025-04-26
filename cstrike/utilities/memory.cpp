@@ -275,6 +275,11 @@ std::uint8_t* MEM::FindPattern(const wchar_t* wszModuleName, const char* szPatte
 
 	// @test: use search with straight in-place conversion? do not think it will be faster, cuz of bunch of new checks that gonna be performed for each iteration
 	std::uint8_t* result = FindPattern(wszModuleName, reinterpret_cast<const char*>(arrByteBuffer), szMaskBuffer);
+	if (result == nullptr)
+	{
+		std::string message = CS_XOR("Failed to find pattern: ") + std::string(szPattern);
+		MessageBoxA(NULL, message.c_str(), CS_XOR("Leerware"), MB_OK | MB_ICONERROR);
+	}
 	patternCache.insert({pattern, result});
 
 	return result;

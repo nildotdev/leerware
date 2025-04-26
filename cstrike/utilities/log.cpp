@@ -118,15 +118,15 @@ L::Stream_t& L::Stream_t::operator()(const ELogLevel nLevel, const char* szFileB
 	switch (nLevel)
 	{
 	case LOG_INFO:
-		szTypeBlock = "[info] ";
+		szTypeBlock = CS_XOR("[info] ");
 		nTypeColorFlags = LOG_COLOR_FORE_CYAN;
 		break;
 	case LOG_WARNING:
-		szTypeBlock = "[warning] ";
+		szTypeBlock = CS_XOR("[warning] ");
 		nTypeColorFlags = LOG_COLOR_FORE_YELLOW;
 		break;
 	case LOG_ERROR:
-		szTypeBlock = "[error] ";
+		szTypeBlock = CS_XOR("[error] ");
 		nTypeColorFlags = LOG_COLOR_FORE_RED;
 		break;
 	default:

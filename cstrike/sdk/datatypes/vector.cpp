@@ -50,3 +50,27 @@
 	matOutput.SetUp(vecUp);
 	return matOutput;
 }
+
+[[nodiscard]] QAngle_t Vector4D_t::ToEulerAngles() const
+{
+	QAngle_t angles;
+	const auto x = this->x;
+	const auto y = this->y;
+	const auto z = this->z;
+	const auto w = this->w;
+
+	double sinr_cosp = 2 * (w * x + y * z);
+	double cosr_cosp = 1 - 2 * (x * x + y * y);
+	angles[2] = std::atan2(sinr_cosp, cosr_cosp);
+
+	double sinp = 2 * (w * y - z * x);
+	if (std::abs(sinp) >= 1)
+		angles[1] = std::copysign(MATH::_PI / 2, sinp);
+	else
+		angles[1] = std::asin(sinp);
+
+	double siny_cosp = 2 * (w * z + x * y);
+	double cosy_cosp = 1 - 2 * (y * y + z * z);
+	angles[0] = std::atan2(siny_cosp, cosy_cosp);
+	return QAngle_t(M_RAD2DEG(angles.y), M_RAD2DEG(angles.x), M_RAD2DEG(angles.z));
+}

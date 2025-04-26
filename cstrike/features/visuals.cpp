@@ -55,3 +55,10 @@ bool F::VISUALS::OnDrawObject(void* pAnimatableSceneObjectDesc, void* pDx11, CMe
 {
 	return CHAMS::OnDrawObject(pAnimatableSceneObjectDesc, pDx11, arrMeshDraw, nDataCount, pSceneView, pSceneLayer, pUnk, pUnk2);
 }
+
+void F::VISUALS::DrawTaserParticles(C_CSPlayerPawn* targetPawn)
+{
+	using fOriginal = void* CS_FASTCALL(const char*, int, C_BaseEntity*, bool, int, bool, int, int, bool);
+	auto oOriginal = reinterpret_cast<fOriginal*>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, "E8 ? ? ? ? F3 0F 10 44 24 ? F3 0F 11 87 ? ? ? ? FF C3"), 0x1));
+	oOriginal("particles/blood_impact/impact_taser_bodyfx.vpcf", 3, targetPawn, false, 0, false, -1, 0, false);
+}

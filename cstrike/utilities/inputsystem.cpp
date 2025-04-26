@@ -139,8 +139,16 @@ bool IPT::GetBindState(KeyBind_t& keyBind)
 		keyBind.bEnable = IsKeyDown(keyBind.uKey);
 		break;
 	case EKeyBindMode::TOGGLE:
-		if (IsKeyReleased(keyBind.uKey))
-			keyBind.bEnable = !keyBind.bEnable;
+		if (IsKeyDown(keyBind.uKey))
+		{
+			if (!keyBind.bHeld)
+			{
+				keyBind.bEnable = !keyBind.bEnable;
+				keyBind.bHeld = true;
+			}
+		}
+		else
+			keyBind.bHeld = false;
 		break;
 	}
 

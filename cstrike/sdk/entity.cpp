@@ -148,29 +148,22 @@ bool C_CSPlayerPawn::CanAttack()
 	if (!WpnData)
 		return false;
 
-	// is weapon ready to shoot
 	if (pBaseWeapon->GetNextPrimaryAttackTick() > TIME_TO_TICKS(flServerTime))
 		return false;
 
 	if (WpnData->GetWeaponType() == WEAPONTYPE_KNIFE)
 		return true;
 
-	// is player ready to shoot
 	if (pPlayerWeaponServices->GetNextAttack() > flServerTime)
 		return false;
 
-	// check is have ammo
 	if (pBaseWeapon->GetClip1() <= 0)
 		return false;
 
-	// check is weapon with burst mode
 	if ((nDefinitionIndex == WEAPON_FAMAS || nDefinitionIndex == WEAPON_GLOCK_18) &&
-	// check is burst mode
 	pBaseWeapon->IsBurstMode() && pBaseWeapon->GetBurstShotsRemaining() > 0)
 		return true;
 
-	// check for revolver cocking ready
-	// this is incorrect, but can't be bothered to fix this
 	if (nDefinitionIndex == WEAPON_R8_REVOLVER && pBaseWeapon->GetPostponeFireReadyFrac() > flServerTime)
 		return false;
 
@@ -213,6 +206,20 @@ bool C_CSPlayerPawn::HasArmor(const int hitgroup)
 	default:
 		return false;
 	}
+}
+
+C_CSWeaponBaseGun* C_CSPlayerPawn::GetCurrentWeapon()
+{
+	CCSPlayer_WeaponServices* wpn_services = this->GetWeaponServices();
+	if (wpn_services == nullptr)
+		return nullptr;
+
+	CBaseHandle wpn_handle = wpn_services->GetActiveWeapon();
+	if (!wpn_handle.IsValid())
+		return nullptr;
+
+	auto wep = I::GameResourceService->pGameEntitySystem->Get<C_CSWeaponBaseGun>(wpn_handle);
+	return wep;
 }
 
 bool C_CSWeaponBaseGun::CanPrimaryAttack(const int nWeaponType, const float flServerTime)

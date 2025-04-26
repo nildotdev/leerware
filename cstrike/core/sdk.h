@@ -33,4 +33,10 @@ namespace SDK
 	inline CUserCmd* Cmd = nullptr;
 
 	inline void(CS_CDECL* fnConColorMsg)(const Color_t&, const char*, ...) = nullptr;
+	inline void(CS_CDECL* fnMsg)(const char*, ...) = nullptr;
+
+	inline std::vector<CCSPlayerController*> PlayerControllers{};
+
+	//inline void* InterpolationCLVT = nullptr;
+	//inline void* InterpolationVT = nullptr;
 }

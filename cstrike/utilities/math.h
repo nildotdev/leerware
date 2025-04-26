@@ -10,6 +10,8 @@
 // used: time
 #include <ctime>
 
+#include "../sdk/datatypes/vector.h"
+
 // convert angle in degrees to radians
 #define M_DEG2RAD(DEGREES) ((DEGREES) * (MATH::_PI / 180.f))
 // convert angle in radians to degrees
@@ -92,6 +94,14 @@ namespace MATH
 	{
 		return value != 0 && (value & (value - 1)) == 0;
 	}
+
+	extern void VectorAngles(const Vector_t& forward, QAngle_t& angles, Vector_t* up);
+
+	extern void AngleVectors(const QAngle_t& angles, Vector_t* forward, Vector_t* right = nullptr, Vector_t* up = nullptr);
+
+	[[nodiscard]] extern QAngle_t CalculateAngles(Vector_t from, Vector_t to);
+
+	[[nodiscard]] extern float CalculateFOVDistance(const QAngle_t& ang1, const QAngle_t& ang2);
 
 	/* @section: random using game's exports */
 	inline int(CS_CDECL* fnRandomSeed)(int iSeed) = nullptr;

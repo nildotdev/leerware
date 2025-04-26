@@ -4,6 +4,6 @@
 
 void F::RAGEBOT::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
-	RAGE::OnMove(pCmd, pBaseCmd, pLocalController, pLocalPawn);
 	ANTIAIM::OnMove(pCmd, pBaseCmd, pLocalController, pLocalPawn);
+	RAGE::OnMove(pCmd, pBaseCmd, pLocalController, pLocalPawn);
 }

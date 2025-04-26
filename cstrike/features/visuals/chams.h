@@ -97,6 +97,20 @@ R"(<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:g
 	 "g_vColorTint" = [1.00000, 1.00000, 1.00000]
 })";
 
+static constexpr char szVMatBufferBubbleVisible[] =
+R"(<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+    shader = "csgo_glass.vfx"
+    g_bFogEnabled = 1
+    
+    GlassMaskColor = resource:"materials/glass/glass01_vmat_g_tglassdust_5a468a25.vtex"
+    GlassMaskTransmission = resource:"materials/glass/glass01_vmat_g_tglasstintcolor_ef8a35db.vtex"
+    TextureNormal = resource:"materials/glass/glass01_vmat_g_tnormal_151129e7.vtex"
+    g_tGlassDust = resource:"materials/glass/glass01_vmat_g_tglassdust_5a468a25.vtex"
+    g_tGlassTintColor = resource:"materials/glass/glass01_vmat_g_tglasstintcolor_ef8a35db.vtex"
+    g_tNormal = resource:"materials/glass/glass01_vmat_g_tnormal_151129e7.vtex"
+})";
+
 class CMaterial2;
 class CMeshData;
 

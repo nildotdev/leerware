@@ -31,6 +31,7 @@ static const std::pair<const char*, const std::size_t> arrColors[] = {
 	{ "[accent] - darker (active)", Vars.colAccent2 },
 	{ "[primitive] - text", Vars.colPrimtv0 },
 	{ "[primitive] - background", Vars.colPrimtv1 },
+	{ "[primitive] - pop-up background", Vars.colPrimtv5 },
 	{ "[primitive] - disabled", Vars.colPrimtv2 },
 	{ "[primitive] - frame background", Vars.colPrimtv3 },
 	{ "[primitive] - border", Vars.colPrimtv4 },
@@ -38,6 +39,21 @@ static const std::pair<const char*, const std::size_t> arrColors[] = {
 
 static constexpr const char* arrMenuAddition[] = {
 	"glow"
+};
+
+static constexpr const char* arrVisualRemovals[] = {
+	"smoke",
+	"flashbang",
+	"first person legs",
+};
+
+static constexpr const char* arrRageHitboxes[] = {
+	"head",
+	"chest",
+	"stomach",
+	"arms",
+	"legs",
+	"feet"
 };
 #pragma endregion
 
@@ -50,7 +66,7 @@ void MENU::RenderMainWindow()
 	animMenuDimBackground.Update(io.DeltaTime, style.AnimationSpeed);
 
 	// @note: we call this every frame because we utilizing rainbow color as well! however it's not really performance friendly?
-	UpdateStyle(&style);
+	//UpdateStyle(&style);
 	if (!bMainWindowOpened)
 		return;
 
@@ -70,7 +86,7 @@ void MENU::RenderMainWindow()
 	ImGui::PushStyleVar(ImGuiStyleVar_Alpha, flBackgroundAlpha);
 
 	ImGui::SetNextWindowPos(ImVec2(vecScreenSize.x * 0.5f, vecScreenSize.y * 0.5f), ImGuiCond_Once, ImVec2(0.5f, 0.5f));
-	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 600 * flDpiScale), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(550 * flDpiScale, 350 * flDpiScale), ImGuiCond_Always);
 
 	// handle main window get out of screen bound
 	// @note: we call this here so it will override the previous SetNextWindowPos
@@ -110,7 +126,7 @@ void MENU::RenderMainWindow()
 		const ImVec2 vecMenuSize = ImGui::GetWindowSize();
 		ImDrawList* pDrawList = ImGui::GetWindowDrawList();
 
-		if (C_GET(unsigned int, Vars.bMenuAdditional) & MENU_ADDITION_GLOW)
+		if (C_GET(unsigned int, Vars.nMenuAdditional) & MENU_ADDITION_GLOW)
 			D::AddDrawListShadowRect(ImGui::GetBackgroundDrawList(), vecMenuPos, vecMenuPos + vecMenuSize, C_GET(ColorPickerVar_t, Vars.colAccent0).colValue, 64.f * flDpiScale, style.WindowRounding, ImDrawFlags_ShadowCutOutShapeBackground);
 
 		const ImVec2 vecTitleSize = FONT::pMenu[C_GET(int, Vars.nDpiScale)]->CalcTextSizeA(12.f * flDpiScale, FLT_MAX, -1.f, CS_XOR("Leerware"));
@@ -229,7 +245,7 @@ void MENU::RenderWatermark()
 			ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), CS_XOR("in-game"));
 
 		static ImVec2 vecNameSize = ImGui::CalcTextSize(CS_XOR("Leerware | " __DATE__ " " __TIME__));
-		ImGui::SameLine(ImGui::GetContentRegionMax().x - vecNameSize.x - style.FramePadding.x);
+		ImGui::SameLine((ImGui::GetContentRegionAvail() + ImGui::GetCursorScreenPos() - ImGui::GetWindowPos()).x - vecNameSize.x - style.FramePadding.x);
 		ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), CS_XOR("Leerware | " __DATE__ " " __TIME__));
 	}
 	ImGui::EndMainMenuBar();
@@ -247,7 +263,7 @@ void MENU::UpdateStyle(ImGuiStyle* pStyle)
 
 	style.Colors[ImGuiCol_WindowBg] = C_GET(ColorPickerVar_t, Vars.colPrimtv3).colValue.GetVec4(0.95f); // primtv 3
 	style.Colors[ImGuiCol_ChildBg] = C_GET(ColorPickerVar_t, Vars.colPrimtv1).colValue.GetVec4(1.0f); // primtv 1
-	style.Colors[ImGuiCol_PopupBg] = C_GET(ColorPickerVar_t, Vars.colPrimtv1).colValue.GetVec4(1.0f); // primtv 1
+	style.Colors[ImGuiCol_PopupBg] = C_GET(ColorPickerVar_t, Vars.colPrimtv5).colValue.GetVec4(1.0f); // primtv 1
 	style.Colors[ImGuiCol_WindowShadow] = C_GET(ColorPickerVar_t, Vars.colAccent2).colValue.GetVec4(0.80f); // accent 3
 
 	style.Colors[ImGuiCol_Border] = C_GET(ColorPickerVar_t, Vars.colPrimtv4).colValue.GetVec4(0.50f); // primtv 4
@@ -291,9 +307,9 @@ void MENU::UpdateStyle(ImGuiStyle* pStyle)
 
 	style.Colors[ImGuiCol_Tab] = C_GET(ColorPickerVar_t, Vars.colPrimtv1).colValue.GetVec4(0.80f); // primtv 1
 	style.Colors[ImGuiCol_TabHovered] = C_GET(ColorPickerVar_t, Vars.colAccent1).colValue.GetVec4(0.80f); // primtv 5
-	style.Colors[ImGuiCol_TabActive] = C_GET(ColorPickerVar_t, Vars.colAccent2).colValue.GetVec4(0.70f); // accent 0
-	style.Colors[ImGuiCol_TabUnfocused] = C_GET(ColorPickerVar_t, Vars.colAccent1).colValue.GetVec4(0.70f); // primtv 5
-	style.Colors[ImGuiCol_TabUnfocusedActive] = C_GET(ColorPickerVar_t, Vars.colAccent2).colValue.GetVec4(0.60f); // accent 0
+	style.Colors[ImGuiCol_TabSelected] = C_GET(ColorPickerVar_t, Vars.colAccent2).colValue.GetVec4(0.70f); // accent 0
+	style.Colors[ImGuiCol_TabDimmed] = C_GET(ColorPickerVar_t, Vars.colAccent1).colValue.GetVec4(0.70f); // primtv 5
+	style.Colors[ImGuiCol_TabDimmedSelected] = C_GET(ColorPickerVar_t, Vars.colAccent2).colValue.GetVec4(0.60f); // accent 0
 
 	style.Colors[ImGuiCol_PlotLines] = C_GET(ColorPickerVar_t, Vars.colAccent0).colValue.GetVec4(1.00f); // accent 0
 	style.Colors[ImGuiCol_PlotLinesHovered] = C_GET(ColorPickerVar_t, Vars.colAccent0).colValue.GetVec4(0.50f); // accent 0
@@ -354,17 +370,54 @@ void T::Render(const char* szTabBar, const CTab* arrTabs, const unsigned long lo
 	}
 }
 
+void T::DrawRagebotVariables(RageBotVars_t* vars)
+{
+	ImGui::Checkbox(CS_XOR("enable##variables"), &vars->bEnable);
+	ImGui::Checkbox(CS_XOR("auto scope"), &vars->bAutoScope);
+	ImGui::Checkbox(CS_XOR("auto stop"), &vars->bAutoStop);
+	ImGui::SliderInt(CS_XOR("hit-chance"), &vars->nHitChance, -1, 100, vars->nHitChance == -1 ? CS_XOR("Auto") : CS_XOR("%d%%"), ImGuiSliderFlags_AlwaysClamp);
+	ImGui::SliderInt(CS_XOR("min damage"), &vars->nMinDamage, 0, 120, vars->nMinDamage == 0 ? CS_XOR("Auto") : (vars->nMinDamage > 100 ? (CS_XOR("HP+") + std::to_string(vars->nMinDamage - 100)).c_str() : CS_XOR("%d")), ImGuiSliderFlags_AlwaysClamp);
+	ImGui::SliderInt(CS_XOR("min damage override"), &vars->nMinDamageOverride, 0, 120, vars->nMinDamageOverride == 0 ? CS_XOR("None") : (vars->nMinDamageOverride > 100 ? (CS_XOR("HP+") + std::to_string(vars->nMinDamageOverride - 100)).c_str() : CS_XOR("%d")), ImGuiSliderFlags_AlwaysClamp);
+	ImGui::SliderInt(CS_XOR("Multi-point"), &vars->nMultipoint, -1, 100, vars->nMultipoint == -1 ? CS_XOR("Auto") : CS_XOR("%d%%"), ImGuiSliderFlags_AlwaysClamp);
+	ImGui::MultiCombo(CS_XOR("Hitboxes"), &vars->scanHitboxes, arrRageHitboxes, CS_ARRAYSIZE(arrRageHitboxes));
+}
+
+size_t weaponConfigs[] = {
+	Vars.varsGlobal,
+	Vars.varsScout,
+	Vars.varsAuto,
+	Vars.varsPistols,
+	Vars.varsAWP,
+	Vars.varsDeagle,
+	Vars.varsR8
+};
+
 void T::RageBot()
 {
+	ImGuiStyle& style = ImGui::GetStyle();
 	ImGui::BeginChild(CS_XOR("ragebot.rage"), ImVec2{}, true, ImGuiWindowFlags_MenuBar);
 	{
 		if (ImGui::BeginMenuBar())
 		{
-			ImGui::TextUnformatted("ragebot");
+			ImGui::TextUnformatted(CS_XOR("ragebot"));
 			ImGui::EndMenuBar();
 		}
+		static int nSelectedWeapon = 0;
+		ImGui::Checkbox(CS_XOR("enable"), &C_GET(bool, Vars.bRageEnable));
+		ImGui::Checkbox(CS_XOR("Hide shots"), &C_GET(bool, Vars.bHideshots));
+		ImGui::SameLine();
+		ImGui::Checkbox(CS_XOR("Double-tap"), &C_GET(bool, Vars.bDoubletap));
+		ImGui::SameLine();
+		ImGui::HotKey(CS_XOR("MD Override"), &C_GET(KeyBind_t, Vars.kMinDamageOverride));
+		ImGui::Combo(CS_XOR("Backtrack"), &C_GET(int, Vars.nBacktrack), CS_XOR("Maximum\0Medium\0Low\0"));
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip(CS_XOR("Same thing as history/accuracy boost."));
+		ImGui::Separator();
+		ImGui::Combo(CS_XOR("Weapon"), &nSelectedWeapon, CS_XOR("Global\0Scout\0Auto-snipers\0Pistols\0AWP\0Deagle\0R8 Revolver\0"));
 
-		ImGui::Checkbox("enable", &C_GET(bool, Vars.bRageEnable));
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
+		DrawRagebotVariables(&C_GET(RageBotVars_t, weaponConfigs[nSelectedWeapon]));
+		ImGui::PopStyleVar();
 	}
 	ImGui::EndChild();
 }
@@ -375,11 +428,13 @@ void T::AntiAim()
 	{
 		if (ImGui::BeginMenuBar())
 		{
-			ImGui::TextUnformatted("antiaim");
+			ImGui::TextUnformatted(CS_XOR("anti-aim"));
 			ImGui::EndMenuBar();
 		}
 
-		ImGui::Checkbox("enable", &C_GET(bool, Vars.bAntiAimEnable));
+		ImGui::Checkbox(CS_XOR("enable"), &C_GET(bool, Vars.bAntiAimEnable));
+		ImGui::HotKey(CS_XOR("override left"), &C_GET(unsigned int, Vars.nOverrideLeft));
+		ImGui::HotKey(CS_XOR("override right"), &C_GET(unsigned int, Vars.nOverrideRight));
 	}
 	ImGui::EndChild();
 }
@@ -397,6 +452,7 @@ void T::LegitBot()
 		ImGui::Checkbox(CS_XOR("enable##aimbot"), &C_GET(bool, Vars.bLegitbot));
 		ImGui::SliderFloat(CS_XOR("aim range"), &C_GET(float, Vars.flAimRange), 1.f, 135.f);
 		ImGui::SliderFloat(CS_XOR("smoothing"), &C_GET(float, Vars.flSmoothing), 1.f, 100.f);
+		ImGui::Checkbox(CS_XOR("auto-wall"), &C_GET(bool, Vars.bLegitAutoWall));
 
 		ImGui::NewLine();
 		// Key
@@ -423,7 +479,7 @@ void T::Visuals()
 		{
 			if (ImGui::BeginMenuBar())
 			{
-				ImGui::TextUnformatted("overlay");
+				ImGui::TextUnformatted(CS_XOR("overlay"));
 				ImGui::EndMenuBar();
 			}
 
@@ -437,6 +493,8 @@ void T::Visuals()
 				ImGui::Checkbox(CS_XOR("name"), &C_GET(TextOverlayVar_t, Vars.overlayName).bEnable);
 				ImGui::Checkbox(CS_XOR("health bar"), &C_GET(BarOverlayVar_t, Vars.overlayHealthBar).bEnable);
 				ImGui::Checkbox(CS_XOR("armor bar"), &C_GET(BarOverlayVar_t, Vars.overlayArmorBar).bEnable);
+				ImGui::Checkbox(CS_XOR("skeleton"), &C_GET(bool, Vars.bDrawSkeleton));
+				ImGui::Checkbox(CS_XOR("backtrack skeleton"), &C_GET(bool, Vars.bDrawBacktrack));
 			}
 			ImGui::EndDisabled();
 
@@ -450,7 +508,7 @@ void T::Visuals()
 		{
 			if (ImGui::BeginMenuBar())
 			{
-				ImGui::TextUnformatted("chams");
+				ImGui::TextUnformatted(CS_XOR("chams"));
 				ImGui::EndMenuBar();
 			}
 
@@ -472,22 +530,27 @@ void T::Visuals()
 		{
 			if (ImGui::BeginMenuBar())
 			{
-				ImGui::TextUnformatted("misc");
+				ImGui::TextUnformatted(CS_XOR("misc"));
 				ImGui::EndMenuBar();
 			}
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
-			ImGui::Checkbox("Third person", &C_GET(bool, Vars.bThirdPerson));
+			ImGui::Checkbox(CS_XOR("Third person"), &C_GET(bool, Vars.bThirdPerson));
 			if (C_GET(bool, Vars.bThirdPerson))
-				ImGui::SliderInt("Distance", &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, "%d units", ImGuiSliderFlags_AlwaysClamp);
-			ImGui::Checkbox("World modulation", &C_GET(bool, Vars.bWorldModulation));
+				ImGui::SliderInt(CS_XOR("Distance"), &C_GET(int, Vars.nThirdPersonDistance), 30.f, 300.f, CS_XOR("%d units"), ImGuiSliderFlags_AlwaysClamp);
+			ImGui::Checkbox(CS_XOR("World modulation"), &C_GET(bool, Vars.bWorldModulation));
 			if (C_GET(bool, Vars.bWorldModulation))
 			{
-				ImGui::ColorEdit4("World##color", &C_GET(ColorPickerVar_t, Vars.colWorld));
-				ImGui::ColorEdit4("Misc##color", &C_GET(ColorPickerVar_t, Vars.colMisc));
-				ImGui::ColorEdit4("Props##color", &C_GET(ColorPickerVar_t, Vars.colProps));
-				ImGui::ColorEdit4("Particles##color", &C_GET(ColorPickerVar_t, Vars.colParticles));
+				ImGui::ColorEdit4(CS_XOR("World##color"), &C_GET(ColorPickerVar_t, Vars.colWorld));
+				ImGui::ColorEdit4(CS_XOR("Misc##color"), &C_GET(ColorPickerVar_t, Vars.colMisc));
+				ImGui::ColorEdit4(CS_XOR("Props##color"), &C_GET(ColorPickerVar_t, Vars.colProps));
+				ImGui::ColorEdit4(CS_XOR("Particles##color"), &C_GET(ColorPickerVar_t, Vars.colParticles));
 			}
+			ImGui::Checkbox(CS_XOR("Remove scope"), &C_GET(bool, Vars.bRemoveScope));
+			ImGui::MultiCombo(CS_XOR("Removals"), &C_GET(unsigned int, Vars.nRemovals), arrVisualRemovals, CS_ARRAYSIZE(arrVisualRemovals));
+			ImGui::SliderInt(CS_XOR("FOV"), &C_GET(int, Vars.nFOV), 1, 120);
+			float* aspectRatio = &C_GET(float, Vars.flAspectRatio);
+			ImGui::SliderFloat(CS_XOR("Aspect ratio"), aspectRatio, 0.f, 2.f, (*aspectRatio == 0.f ? CS_XOR("Default") : CS_XOR("%.2f")));
 			ImGui::PopStyleVar();
 		}
 		ImGui::EndChild();
@@ -523,6 +586,8 @@ void T::Miscellaneous()
 				NOTIFY::Push({ N_TYPE_INFO, CS_XOR("unlocked all hidden cvars") });
 			}
 
+			ImGui::Checkbox(CS_XOR("Anti-Untrusted"), &C_GET(bool, Vars.bAntiUntrusted));
+
 			ImGui::PopStyleColor();
 
 			ImGui::PopStyleVar();
@@ -540,10 +605,12 @@ void T::Miscellaneous()
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(style.FramePadding.x, 0));
 
 			ImGui::Checkbox(CS_XOR("half ducking"), &C_GET(bool, Vars.bHalfDuck));
-
+			ImGui::Checkbox(CS_XOR("slow-walk"), &C_GET(bool, Vars.bSlowWalk));
 			ImGui::Checkbox(CS_XOR("auto bunny-hopping"), &C_GET(bool, Vars.bAutoBHop));
-
 			ImGui::Checkbox(CS_XOR("auto strafe"), &C_GET(bool, Vars.bAutoStrafe));
+			ImGui::Checkbox(CS_XOR("jump bug"), &C_GET(bool, Vars.bJumpBug));
+			ImGui::Checkbox(CS_XOR("edge jump"), &C_GET(bool, Vars.bEdgeJump));
+			ImGui::Checkbox(CS_XOR("quick stop"), &C_GET(bool, Vars.bQuickStop));
 
 			ImGui::PopStyleVar();
 		}
@@ -670,6 +737,8 @@ void T::Miscellaneous()
 
 					ImGui::HotKey(CS_XOR("menu key"), &C_GET(unsigned int, Vars.nMenuKey));
 
+					ImGui::HotKey(CS_XOR("panic key"), &C_GET(unsigned int, Vars.nPanicKey));
+
 					if (ImGui::BeginCombo(CS_XOR("dpi scale"), arrMiscDpiScale[C_GET(int, Vars.nDpiScale)]))
 					{
 						for (int i = 0; i < IM_ARRAYSIZE(arrMiscDpiScale); i++)
@@ -681,7 +750,7 @@ void T::Miscellaneous()
 						ImGui::EndCombo();
 					}
 
-					ImGui::MultiCombo(CS_XOR("additional settings"), &C_GET(unsigned int, Vars.bMenuAdditional), arrMenuAddition, CS_ARRAYSIZE(arrMenuAddition));
+					ImGui::MultiCombo(CS_XOR("additional settings"), &C_GET(unsigned int, Vars.nMenuAdditional), arrMenuAddition, CS_ARRAYSIZE(arrMenuAddition));
 
 					ImGui::SliderFloat(CS_XOR("animation speed"), &C_GET(float, Vars.flAnimationSpeed), 1.f, 10.f);
 

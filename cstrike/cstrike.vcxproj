@@ -158,6 +158,7 @@
     <ClInclude Include="features.h" />
     <ClInclude Include="features\lagcomp\lagcomp.h" />
     <ClInclude Include="features\penetration\penetration.h" />
+    <ClInclude Include="features\prediction\engine.h" />
     <ClInclude Include="features\rage\antiaim.h" />
     <ClInclude Include="features\CRC.h" />
     <ClInclude Include="features\legitbot\aim.h" />
@@ -169,7 +170,11 @@
     <ClInclude Include="features\visuals.h" />
     <ClInclude Include="features\visuals\chams.h" />
     <ClInclude Include="features\visuals\overlay.h" />
+    <ClInclude Include="sdk\datatypes\cnetworkserializepb.h" />
+    <ClInclude Include="sdk\interfaces\cdebugoverlaygamesystem.h" />
     <ClInclude Include="sdk\interfaces\cgametracemanager.h" />
+    <ClInclude Include="sdk\interfaces\cprediction.h" />
+    <ClInclude Include="sdk\interfaces\inetworkgameservice.h" />
     <ClInclude Include="sdk\interfaces\ipvs.h" />
     <ClInclude Include="sdk\const.h" />
     <ClInclude Include="sdk\datatypes\color.h" />
@@ -206,6 +211,7 @@
     <ClInclude Include="sdk\interfaces\inetworkclientservice.h" />
     <ClInclude Include="sdk\interfaces\iresourcesystem.h" />
     <ClInclude Include="sdk\interfaces\ischemasystem.h" />
+    <ClInclude Include="sdk\interfaces\isource2client.h" />
     <ClInclude Include="sdk\interfaces\iswapchaindx11.h" />
     <ClInclude Include="sdk\interfaces\iviewrender.h" />
     <ClInclude Include="sdk\vdata.h" />
@@ -235,7 +241,9 @@
     <ClCompile Include="..\dependencies\minhook\hde\hde64.c" />
     <ClCompile Include="..\dependencies\minhook\hook.c" />
     <ClCompile Include="..\dependencies\minhook\trampoline.c" />
+    <ClCompile Include="features\lagcomp\lagcomp.cpp" />
     <ClCompile Include="features\penetration\penetration.cpp" />
+    <ClCompile Include="features\prediction\engine.cpp" />
     <ClCompile Include="features\ragebot.cpp" />
     <ClCompile Include="features\rage\antiaim.cpp" />
     <ClCompile Include="features\legitbot.cpp" />

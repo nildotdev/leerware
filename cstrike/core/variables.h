@@ -43,20 +43,46 @@ enum EMenuAddition : MenuAddition_t
 	MENU_ADDITION_GLOW = 1 << 0,
 	MENU_ADDITION_ALL = MENU_ADDITION_GLOW
 };
+
+using RemovalsDropdown_t = unsigned int;
+
+enum ERemovalsDropdown : RemovalsDropdown_t
+{
+	REMOVALS_NONE = 0U,
+	REMOVALS_SMOKE = 1 << 0,
+	REMOVALS_FLASH = 1 << 1,
+	REMOVALS_LEGS = 1 << 2,
+};
+
 #pragma endregion
 
 struct Variables_t
 {
 #pragma region variables_ragebot
 	C_ADD_VARIABLE(bool, bRageEnable, false);
+	C_ADD_VARIABLE(bool, bHideshots, false);
+	C_ADD_VARIABLE(bool, bDoubletap, false);
+	C_ADD_VARIABLE(KeyBind_t, kMinDamageOverride, KeyBind_t(CS_XOR("MD Override"), 0U, EKeyBindMode::TOGGLE));
+	C_ADD_VARIABLE(int, nBacktrack, 0);
+	C_ADD_VARIABLE(RageBotVars_t, varsGlobal, RageBotVars_t(true));
+	C_ADD_VARIABLE(RageBotVars_t, varsScout, RageBotVars_t(false));
+	C_ADD_VARIABLE(RageBotVars_t, varsAuto, RageBotVars_t(false));
+	C_ADD_VARIABLE(RageBotVars_t, varsPistols, RageBotVars_t(false));
+	C_ADD_VARIABLE(RageBotVars_t, varsAWP, RageBotVars_t(false));
+	C_ADD_VARIABLE(RageBotVars_t, varsDeagle, RageBotVars_t(false));
+	C_ADD_VARIABLE(RageBotVars_t, varsR8, RageBotVars_t(false));
 #pragma endregion
 #pragma region variables_antiaim
 	C_ADD_VARIABLE(bool, bAntiAimEnable, false);
+	C_ADD_VARIABLE(unsigned int, nOverrideLeft, 0U);
+	C_ADD_VARIABLE(unsigned int, nOverrideRight, 0U);
 #pragma endregion
 
 #pragma region variables_visuals
 	C_ADD_VARIABLE(bool, bVisualOverlay, false);
 
+	C_ADD_VARIABLE(bool, bDrawSkeleton, false);
+	C_ADD_VARIABLE(bool, bDrawBacktrack, false);
 	C_ADD_VARIABLE(FrameOverlayVar_t, overlayBox, FrameOverlayVar_t(false));
 	C_ADD_VARIABLE(TextOverlayVar_t, overlayName, TextOverlayVar_t(false));
 	C_ADD_VARIABLE(BarOverlayVar_t, overlayHealthBar, BarOverlayVar_t(false, false, false, 1.f, Color_t(0, 255, 0), Color_t(255, 0, 0)));
@@ -76,6 +102,11 @@ struct Variables_t
 	C_ADD_VARIABLE(ColorPickerVar_t, colMisc, ColorPickerVar_t(255, 255, 255));
 	C_ADD_VARIABLE(ColorPickerVar_t, colProps, ColorPickerVar_t(255, 255, 255));
 	C_ADD_VARIABLE(ColorPickerVar_t, colParticles, ColorPickerVar_t(255, 255, 255));
+
+	C_ADD_VARIABLE(bool, bRemoveScope, false);
+	C_ADD_VARIABLE(unsigned int, nRemovals, ERemovalsDropdown::REMOVALS_NONE);
+	C_ADD_VARIABLE(int, nFOV, 90);
+	C_ADD_VARIABLE(float, flAspectRatio, 0.f);
 #pragma endregion
 
 #pragma region variables_misc
@@ -83,8 +114,12 @@ struct Variables_t
 	C_ADD_VARIABLE(bool, bWatermark, true);
 
 	C_ADD_VARIABLE(bool, bHalfDuck, false);
+	C_ADD_VARIABLE(bool, bSlowWalk, false);
 	C_ADD_VARIABLE(bool, bAutoBHop, false);
 	C_ADD_VARIABLE(bool, bAutoStrafe, false);
+	C_ADD_VARIABLE(bool, bJumpBug, false);
+	C_ADD_VARIABLE(bool, bEdgeJump, false);
+	C_ADD_VARIABLE(bool, bQuickStop, false);
 #pragma endregion
 
 #pragma region variables_menu
@@ -108,12 +143,13 @@ struct Variables_t
 	 * - accent 1 (dark)
 	 * - accent 2 (darker)
 	 */
-	C_ADD_VARIABLE(unsigned int, bMenuAdditional, MENU_ADDITION_ALL);
+	C_ADD_VARIABLE(unsigned int, nMenuAdditional, EMenuAddition::MENU_ADDITION_ALL);
 	C_ADD_VARIABLE(float, flAnimationSpeed, 1.f);
 
 
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv0, ColorPickerVar_t(255, 255, 255)); // (text)
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv1, ColorPickerVar_t(0, 0, 0, 0)); // (background)
+	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv5, ColorPickerVar_t(0, 0, 0, 130)); // (pop-up background)
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv2, ColorPickerVar_t(255, 255, 255)); // (disabled)
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv3, ColorPickerVar_t(0, 0, 0, 150)); // (control bg)
 	C_ADD_VARIABLE(ColorPickerVar_t, colPrimtv4, ColorPickerVar_t(0, 0, 0, 120)); // (border)

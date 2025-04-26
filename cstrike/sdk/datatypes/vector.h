@@ -363,7 +363,12 @@ struct Vector4D_t
 	constexpr Vector4D_t(const float x = 0.0f, const float y = 0.0f, const float z = 0.0f, const float w = 0.0f) :
 		x(x), y(y), z(z), w(w) { }
 
+	constexpr Vector4D_t(const Vector_t& vecBase3D) :
+		x(vecBase3D.x), y(vecBase3D.y), z(vecBase3D.z) { }
+
 	float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f;
+
+	[[nodiscard]] QAngle_t ToEulerAngles() const;
 };
 
 struct alignas(16) VectorAligned_t : Vector_t
@@ -391,3 +396,52 @@ struct alignas(16) VectorAligned_t : Vector_t
 };
 
 static_assert(alignof(VectorAligned_t) == 16);
+
+class CNetworkedQuantizedFloat
+{
+public:
+	std::float_t m_Value;
+	uint16_t m_nEncoder;
+	bool m_bUnflattened;
+	bool m_bUnk;
+};
+
+class CNetworkVelocityVector
+{
+public:
+	Vector_t m_vecValue; // 0x0000
+	CNetworkedQuantizedFloat m_vecX; // 0x0010
+	CNetworkedQuantizedFloat m_vecY; // 0x0018
+	CNetworkedQuantizedFloat m_vecZ; // 0x0020
+};
+
+class CNetworkViewOffsetVector
+{
+public:
+	Vector_t m_vecValue; // 0x0000
+	CNetworkedQuantizedFloat m_vecX; // 0x0010
+	CNetworkedQuantizedFloat m_vecY; // 0x0018
+	CNetworkedQuantizedFloat m_vecZ; // 0x0020
+};
+
+class CNetworkOriginQuantizedVector
+{
+public:
+	Vector_t m_vecValue; // 0x0000
+	CNetworkedQuantizedFloat m_vecX; // 0x0010
+	CNetworkedQuantizedFloat m_vecY; // 0x0018
+	CNetworkedQuantizedFloat m_vecZ; // 0x0020
+};
+
+class CNetworkOriginCellCoordQuantizedVector
+{
+public:
+	Vector_t m_vecValue; // 0x0000
+	uint16_t m_cellX; // 0x0010
+	uint16_t m_cellY; // 0x0012
+	uint16_t m_cellZ; // 0x0014
+	uint16_t m_nOutsideWorld; // 0x0016
+	CNetworkedQuantizedFloat m_vecX; // 0x0018
+	CNetworkedQuantizedFloat m_vecY; // 0x0020
+	CNetworkedQuantizedFloat m_vecZ; // 0x0028
+};

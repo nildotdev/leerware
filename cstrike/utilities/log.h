@@ -292,6 +292,14 @@ namespace L
 			return *this;
 		}
 
+		Stream_t& operator<<(const Vector4D_t& vecValue)
+		{
+			this->nModeFlags |= LOG_MODE_FLOAT_FORMAT_FIXED;
+			this->iPrecision = 3;
+			*this << CS_XOR("vector4d: (") << vecValue.x << CS_XOR(" | ") << vecValue.y << CS_XOR(" | ") << vecValue.z << CS_XOR(" | ") << vecValue.w << CS_XOR(")");
+			return *this;
+		}
+
 		Stream_t& operator<<(const QAngle_t& angValue)
 		{
 			this->nModeFlags |= LOG_MODE_FLOAT_FORMAT_FIXED;

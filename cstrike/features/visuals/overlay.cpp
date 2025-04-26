@@ -27,6 +27,9 @@
 // used: mainwindowopened
 #include "../../core/menu.h"
 
+// used: backtrack skeleton
+#include "../../features/lagcomp/lagcomp.h"
+
 using namespace F::VISUALS;
 
 #pragma region visual_overlay_components
@@ -151,7 +154,7 @@ void OVERLAY::CBarComponent::Render(ImDrawList* pDrawList, const ImVec2& vecPosi
 		this->bIsHovered = false;
 }
 
-OVERLAY::CTextComponent::CTextComponent(const bool bIsMenuItem, const EAlignSide nAlignSide, const EAlignDirection nAlignDirection, const ImFont* pFont, const char* szText, const std::size_t uOverlayVarIndex) :
+OVERLAY::CTextComponent::CTextComponent(const bool bIsMenuItem, const EAlignSide nAlignSide, const EAlignDirection nAlignDirection, ImFont* pFont, const char* szText, const std::size_t uOverlayVarIndex) :
 	bIsMenuItem(bIsMenuItem), pFont(pFont), uOverlayVarIndex(uOverlayVarIndex)
 {
 	// allocate own buffer to safely store a copy of the string
@@ -440,6 +443,17 @@ void OVERLAY::OnFrameStageNotify(CCSPlayerController* pLocalController)
 	if (!I::Engine->IsConnected() || !I::Engine->IsInGame())
 		return;
 
+	ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+	ImVec2 center = ImVec2(screenSize.x / 2, screenSize.y / 2);
+	if (C_GET(bool, Vars.bRemoveScope) && SDK::LocalPawn != nullptr && SDK::LocalPawn->GetHealth() > 0 && SDK::LocalPawn->IsScoped())
+	{
+		D::pDrawListActive->AddLine(ImVec2(center.x, 0), ImVec2(center.x, screenSize.y), Color_t(0.f, 0.f, 0.f).GetU32());
+		D::pDrawListActive->AddLine(ImVec2(0, center.y), ImVec2(screenSize.x, center.y), Color_t(0.f, 0.f, 0.f).GetU32());
+	}
+
+	if (C_GET(bool, Vars.bRageEnable) && IPT::GetBindState(C_GET(KeyBind_t, Vars.kMinDamageOverride)))
+		D::pDrawListActive->AddText(FONT::pMenu[4], 32.f, ImVec2(0, center.y), IM_COL32_WHITE, "MD");
+
 	if (!C_GET(bool, Vars.bVisualOverlay))
 		return;
 
@@ -485,12 +499,20 @@ void OVERLAY::OnFrameStageNotify(CCSPlayerController* pLocalController)
 		if (uHashedName == FNV1A::HashConst("CCSPlayerController"))
 		{
 			nEntityType = SORT_ENTITY_PLAYER;
-			CCSPlayerController* pPlayer = reinterpret_cast<CCSPlayerController*>(pEntity);
-			if (pPlayer == nullptr)
-				continue;
 
+			CCSPlayerController* pPlayer = reinterpret_cast<CCSPlayerController*>(pEntity);
 			vecOrigin = pPlayer->GetPawnOrigin();
 		}
+
+		/*if (uHashedName == FNV1A::HashConst("C_BaseModelEntity"))
+		{
+			C_BaseModelEntity* pLadder = reinterpret_cast<C_BaseModelEntity*>(pEntity);
+			ImVec2 l1, l2{};
+			if (!D::WorldToScreen(pLadder->GetSceneOrigin(), &l1) || !D::WorldToScreen(pLadder->GetViewOffset(), &l2))
+				continue;
+
+			D::pDrawListActive->AddLine(l1, l2, IM_COL32_WHITE);
+		}*/
 
 		// only add sortable entities
 		if (nEntityType != SORT_ENTITY_NONE)
@@ -514,11 +536,7 @@ void OVERLAY::OnFrameStageNotify(CCSPlayerController* pLocalController)
 			if (pPlayer == nullptr)
 				break;
 
-			if (!pPlayer->IsPawnAlive())
-				break;
-
 			Player(pLocalController, pPlayer, flDistance);
-
 			break;
 		}
 		default:
@@ -574,6 +592,12 @@ void OVERLAY::Player(CCSPlayerController* pLocal, CCSPlayerController* pPlayer, 
 	if (pLocalPawn == nullptr || pPlayerPawn == nullptr)
 		return;
 
+	if (pPlayerPawn->GetHealth() < 1 || !pPlayer->IsPawnAlive())
+	{
+		F::LAGCOMP::Destroy(pPlayerPawn);
+		return;
+	}
+
 	// @note: this is a simple example of how to check if the player is visible
 
 	// initialize trace, construct filterr and initialize ray
@@ -588,11 +612,13 @@ void OVERLAY::Player(CCSPlayerController* pLocal, CCSPlayerController* pPlayer, 
 	//if (trace.m_pHitEntity != pPlayerPawn || !trace.IsVisible( ))
 	//	return;
 
-	bool bIsEnemy = (pLocalPawn->IsOtherEnemy(pPlayerPawn));
+	bool bIsEnemy = pLocalPawn->IsOtherEnemy(pPlayerPawn);
 
 	// @note: only enemy overlay for now
 	if (!bIsEnemy)
 		return;
+
+	F::LAGCOMP::Create(pPlayerPawn);
 
 	ImVec4 vecBox = {};
 	if (!GetEntityBoundingBox(pPlayerPawn, &vecBox))
@@ -620,6 +646,73 @@ void OVERLAY::Player(CCSPlayerController* pLocal, CCSPlayerController* pPlayer, 
 	{
 		const float flArmorFactor = pPlayerPawn->GetArmorValue() / 100.f;
 		context.AddComponent(new CBarComponent(false, SIDE_BOTTOM, vecBox, flArmorFactor, Vars.overlayArmorBar));
+	}
+
+	if (C_GET(bool, Vars.bDrawSkeleton))
+	{
+		auto node = reinterpret_cast<CGameSceneNode*>(pPlayerPawn->GetGameSceneNode());
+		if (node == nullptr)
+			return;
+
+		auto skeleton = reinterpret_cast<CSkeletonInstance*>(node->GetSkeletonInstance());
+		if (skeleton == nullptr)
+			return;
+		skeleton->CalculateWorldSpaceBones(EBoneFlags::FLAG_HITBOX);
+		auto& model_state = skeleton->GetModelState();
+		CModel* model = model_state.GetModel();
+		const auto num_bones = skeleton->nBoneCount;
+		const auto bones = skeleton->pBoneCache;
+
+		for (auto i = 0u; i < num_bones; i++)
+		{
+			if (model->GetBoneFlags(i) & EBoneFlags::FLAG_HITBOX)
+			{
+				auto parent_index = model->GetBoneParent(i);
+				if (parent_index == -1)
+					continue;
+
+				ImVec2 start_scr, end_scr;
+				if (!D::WorldToScreen(bones->GetOrigin(i), &start_scr) || !D::WorldToScreen(bones->GetOrigin(parent_index), &end_scr))
+					continue;
+
+				D::pDrawListActive->AddLine(start_scr, end_scr, IM_COL32_WHITE);
+			}
+		}
+	}
+
+	if (C_GET(bool, Vars.bDrawBacktrack))
+	{
+		F::LAGCOMP::Apply(pPlayerPawn, 0); // Latest possible record.
+		auto node = reinterpret_cast<CGameSceneNode*>(pPlayerPawn->GetGameSceneNode());
+		if (node == nullptr)
+			return;
+
+		auto skeleton = reinterpret_cast<CSkeletonInstance*>(node->GetSkeletonInstance());
+		if (skeleton == nullptr)
+			return;
+
+		skeleton->CalculateWorldSpaceBones(EBoneFlags::FLAG_HITBOX);
+		auto& model_state = skeleton->GetModelState();
+		CModel* model = model_state.GetModel();
+		const auto num_bones = skeleton->nBoneCount;
+		const auto bones = skeleton->pBoneCache;
+
+		for (auto i = 0u; i < num_bones; i++)
+		{
+			if (model->GetBoneFlags(i) & EBoneFlags::FLAG_HITBOX)
+			{
+				auto parent_index = model->GetBoneParent(i);
+				if (parent_index == -1)
+					continue;
+
+				ImVec2 start_scr, end_scr;
+				if (!D::WorldToScreen(bones->GetOrigin(i), &start_scr) || !D::WorldToScreen(bones->GetOrigin(parent_index), &end_scr))
+					continue;
+
+				D::pDrawListActive->AddLine(start_scr, end_scr, IM_COL32_WHITE);
+			}
+		}
+		F::LAGCOMP::Restore(pPlayerPawn); // Restore
 	}
 
 	// render all the context

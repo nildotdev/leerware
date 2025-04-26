@@ -190,7 +190,7 @@ namespace D
 	void AddDrawListTriangle(ImDrawList* pDrawList, const ImVec2& vecFirst, const ImVec2& vecSecond, const ImVec2& vecThird, const Color_t& colTriangle, const unsigned int uFlags = DRAW_TRIANGLE_NONE, const Color_t& colOutline = Color_t(0, 0, 0, 255), const float flThickness = 0.f);
 	void AddDrawListQuad(ImDrawList* pDrawList, const ImVec2& vecFirst, const ImVec2& vecSecond, const ImVec2& vecThird, const ImVec2& vecFourth, const Color_t& colQuad, const unsigned int uFlags = DRAW_QUAD_NONE, const Color_t& colOutline = Color_t(0, 0, 0, 255), const float flThickness = 0.f);
 	void AddDrawListPolygon(ImDrawList* pDrawList, const ImVec2* vecPoints, const int nPointsCount, const Color_t& colPolygon, unsigned int uFlags = DRAW_POLYGON_NONE, const Color_t& colOutline = Color_t(0, 0, 0, 255), const bool bClosed = true, const float flThickness = 1.0f);
-	void AddDrawListText(ImDrawList* pDrawList, const ImFont* pFont, const ImVec2& vecPosition, const char* szText, const Color_t& colText, const unsigned int uFlags = DRAW_TEXT_NONE, const Color_t& colOutline = Color_t(0, 0, 0, 255), const float flThickness = 1.0f);
+	void AddDrawListText(ImDrawList* pDrawList, ImFont* pFont, const ImVec2& vecPosition, const char* szText, const Color_t& colText, const unsigned int uFlags = DRAW_TEXT_NONE, const Color_t& colOutline = Color_t(0, 0, 0, 255), const float flThickness = 1.0f);
 	void AddDrawListShadowRect(ImDrawList* pDrawList, const ImVec2& vecMin, const ImVec2& vecMax, const Color_t& colShadow, float flThickness = 32.f, float flRounding = 0.0f, ImDrawFlags roundingCorners = ImDrawFlags_RoundCornersAll);
 
 	/* @section: values */

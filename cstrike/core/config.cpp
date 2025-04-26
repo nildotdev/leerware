@@ -156,6 +156,18 @@ bool C::Setup(const wchar_t* wszDefaultFileName)
 		UserDataMember_t{ FNV1A::HashConst("colOutline"), FNV1A::HashConst("Color_t"), &BarOverlayVar_t::colOutline } 
 	});
 
+	AddUserType(FNV1A::HashConst("RageBotVars_t"),
+	{
+		UserDataMember_t{ FNV1A::HashConst("bEnable"), FNV1A::HashConst("bool"), &RageBotVars_t::bEnable },
+		UserDataMember_t{ FNV1A::HashConst("bAutoScope"), FNV1A::HashConst("bool"), &RageBotVars_t::bAutoScope },
+		UserDataMember_t{ FNV1A::HashConst("bAutoStop"), FNV1A::HashConst("bool"), &RageBotVars_t::bAutoStop },
+		UserDataMember_t{ FNV1A::HashConst("nHitChance"), FNV1A::HashConst("int"), &RageBotVars_t::nHitChance },
+		UserDataMember_t{ FNV1A::HashConst("nMinDamage"), FNV1A::HashConst("int"), &RageBotVars_t::nMinDamage },
+		UserDataMember_t{ FNV1A::HashConst("nMinDamageOverride"), FNV1A::HashConst("int"), &RageBotVars_t::nMinDamageOverride },
+		UserDataMember_t{ FNV1A::HashConst("nMultipoint"), FNV1A::HashConst("int"), &RageBotVars_t::nMultipoint },
+		UserDataMember_t{ FNV1A::HashConst("scanHitboxes"), FNV1A::HashConst("unsigned int"), &RageBotVars_t::scanHitboxes }
+	});
+
 	// create default configuration
 	if (!CreateFile(wszDefaultFileName))
 		return false;

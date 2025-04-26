@@ -156,8 +156,35 @@ bool CONVAR::Setup()
 	mp_teammates_are_enemies = I::Cvar->Find(FNV1A::HashConst("mp_teammates_are_enemies"));
 	bSuccess &= mp_teammates_are_enemies != nullptr;
 
+	mp_damage_scale_ct_head = I::Cvar->Find(FNV1A::HashConst("mp_damage_scale_ct_head"));
+	bSuccess &= mp_damage_scale_ct_head != nullptr;
+
+	mp_damage_scale_t_head = I::Cvar->Find(FNV1A::HashConst("mp_damage_scale_t_head"));
+	bSuccess &= mp_damage_scale_t_head != nullptr;
+
+	mp_damage_scale_ct_body = I::Cvar->Find(FNV1A::HashConst("mp_damage_scale_ct_body"));
+	bSuccess &= mp_damage_scale_ct_body != nullptr;
+
+	mp_damage_scale_t_body = I::Cvar->Find(FNV1A::HashConst("mp_damage_scale_t_body"));
+	bSuccess &= mp_damage_scale_t_body != nullptr;
+
 	sv_autobunnyhopping = I::Cvar->Find(FNV1A::HashConst("sv_autobunnyhopping"));
 	bSuccess &= sv_autobunnyhopping != nullptr;
+	
+	sv_quantize_movement_input = I::Cvar->Find(FNV1A::HashConst("sv_quantize_movement_input"));
+	bSuccess &= sv_quantize_movement_input != nullptr;
+
+	sv_airaccelerate = I::Cvar->Find(FNV1A::HashConst("sv_airaccelerate"));
+	bSuccess &= sv_airaccelerate != nullptr;
+
+	sv_maxunlag = I::Cvar->Find(FNV1A::HashConst("sv_maxunlag"));
+	bSuccess &= sv_maxunlag != nullptr;
+
+	sv_accelerate = I::Cvar->Find(FNV1A::HashConst("sv_accelerate"));
+	bSuccess &= sv_accelerate != nullptr;
+
+	sv_maxspeed = I::Cvar->Find(FNV1A::HashConst("sv_maxspeed"));
+	bSuccess &= sv_maxspeed != nullptr;
 
 	return bSuccess;
 }

@@ -77,7 +77,7 @@ public:
 	Vector2D_t nMousePos;
 	int32_t SubticksCount;
 	MEM_PAD(0x120);
-	Vector_t vecViewAngle;
+	QAngle_t vecViewAngle;
 	int32_t nTargetHandle;
 	MEM_PAD(0x230);
 	int32_t nAttackStartHistoryIndex1;

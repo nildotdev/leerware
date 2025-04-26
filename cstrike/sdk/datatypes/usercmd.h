@@ -23,7 +23,7 @@ enum ECommandButtons : std::uint64_t
 	IN_MOVERIGHT = 1 << 10,
 	IN_SECOND_ATTACK = 1 << 11,
 	IN_RELOAD = 1 << 13,
-	IN_SPRINT = 1 << 16,
+	IN_SPEED = 1 << 16,
 	IN_JOYAUTOSPRINT = 1 << 17,
 	IN_SHOWSCORES = 1ULL << 33,
 	IN_ZOOM = 1ULL << 34,
@@ -42,21 +42,21 @@ enum ESubtickMoveStepBits : std::uint32_t
 
 enum EInputHistoryBits : std::uint32_t
 {
-	INPUT_HISTORY_BITS_VIEWANGLES = 0x1U,
-	INPUT_HISTORY_BITS_SHOOTPOSITION = 0x2U,
-	INPUT_HISTORY_BITS_TARGETHEADPOSITIONCHECK = 0x4U,
-	INPUT_HISTORY_BITS_TARGETABSPOSITIONCHECK = 0x8U,
-	INPUT_HISTORY_BITS_TARGETANGCHECK = 0x10U,
-	INPUT_HISTORY_BITS_CL_INTERP = 0x20U,
-	INPUT_HISTORY_BITS_SV_INTERP0 = 0x40U,
-	INPUT_HISTORY_BITS_SV_INTERP1 = 0x80U,
-	INPUT_HISTORY_BITS_PLAYER_INTERP = 0x100U,
-	INPUT_HISTORY_BITS_RENDERTICKCOUNT = 0x200U,
-	INPUT_HISTORY_BITS_RENDERTICKFRACTION = 0x400U,
-	INPUT_HISTORY_BITS_PLAYERTICKCOUNT = 0x800U,
-	INPUT_HISTORY_BITS_PLAYERTICKFRACTION = 0x1000U,
-	INPUT_HISTORY_BITS_FRAMENUMBER = 0x2000U,
-	INPUT_HISTORY_BITS_TARGETENTINDEX = 0x4000U
+	INPUT_HISTORY_BITS_VIEWANGLES = 0x1U, // seems fine
+	INPUT_HISTORY_BITS_SHOOTPOSITION = 0x20U, // FIXED . ,
+	INPUT_HISTORY_BITS_TARGETHEADPOSITIONCHECK = 0x4U, // dont care
+	INPUT_HISTORY_BITS_TARGETABSPOSITIONCHECK = 0x8U, //dont care
+	INPUT_HISTORY_BITS_TARGETANGCHECK = 0x10U, // dont care
+	INPUT_HISTORY_BITS_CL_INTERP = 0x10U, // Fixed.
+	INPUT_HISTORY_BITS_SV_INTERP0 = 0x4U, // Fixed.
+	INPUT_HISTORY_BITS_SV_INTERP1 = 0x8U, // fixed.
+	INPUT_HISTORY_BITS_PLAYER_INTERP = 0x10U, // fixed.
+	INPUT_HISTORY_BITS_RENDERTICKCOUNT = 0x200U, // correct.
+	INPUT_HISTORY_BITS_RENDERTICKFRACTION = 0x400U, // dont care
+	INPUT_HISTORY_BITS_PLAYERTICKCOUNT = 0x800U, // correct
+	INPUT_HISTORY_BITS_PLAYERTICKFRACTION = 0x1000U, // dont care
+	INPUT_HISTORY_BITS_FRAMENUMBER = 0x2000U, // dont care
+	INPUT_HISTORY_BITS_TARGETENTINDEX = 0x4000U // correct.
 };
 
 enum EButtonStatePBBits : uint32_t
@@ -115,7 +115,7 @@ struct RepeatedPtrField_t
 	T* add(T* element)
 	{
 		// Define the function pointer correctly
-		static auto add_to_rep_addr = reinterpret_cast<T * (__fastcall*)(RepeatedPtrField_t*, T*)>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, "E8 ? ? ? ? 4C 8B E0 48 8B 44 24 ? 4C 8B CF"), 0x1));
+		static auto add_to_rep_addr = reinterpret_cast<T*(__fastcall*)(RepeatedPtrField_t*, T*)>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 4C 8B E0 48 8B 44 24 ? 4C 8B CF")), 0x1));
 
 		// Use the function pointer to call the function
 		return add_to_rep_addr(this, element);
@@ -129,8 +129,9 @@ struct RepeatedPtrField_t
 
 class CBasePB
 {
+private:
+	void* VTable; // 0x0 VTABLE
 public:
-	MEM_PAD(0x8) // 0x0 VTABLE
 	std::uint32_t nHasBits; // 0x8
 	std::uint64_t nCachedBits; // 0xC
 
@@ -169,24 +170,60 @@ public:
 
 static_assert(sizeof(CCSGOInterpolationInfoPB) == 0x28);
 
+class CCSGOInterpolationInfoPB_CL : public CBasePB
+{
+public:
+	float flFraction; // 0x18
+};
+
+static_assert(sizeof(CCSGOInterpolationInfoPB_CL) == 0x20);
+
 class CCSGOInputHistoryEntryPB : public CBasePB
 {
 public:
-	CMsgQAngle* pViewAngles; // 0x18
-	CMsgVector* pShootPosition; // 0x20
-	CMsgVector* pTargetHeadPositionCheck; // 0x28
-	CMsgVector* pTargetAbsPositionCheck; // 0x30
-	CMsgQAngle* pTargetAngPositionCheck; // 0x38
-	CCSGOInterpolationInfoPB* cl_interp; // 0x40
-	CCSGOInterpolationInfoPB* sv_interp0; // 0x48
-	CCSGOInterpolationInfoPB* sv_interp1; // 0x50
-	CCSGOInterpolationInfoPB* player_interp; // 0x58
-	int nRenderTickCount; // 0x60
-	float flRenderTickFraction; // 0x64
-	int nPlayerTickCount; // 0x68
-	float flPlayerTickFraction; // 0x6C
-	int nFrameNumber; // 0x70
-	int nTargetEntIndex; // 0x74
+	class CMsgQAngle* pViewAngles; //0x0018
+	class CCSGOInterpolationInfoPB_CL* cl_interp; //0x0020
+	class CCSGOInterpolationInfoPB* sv_interp0; //0x0028
+	class CCSGOInterpolationInfoPB* sv_interp1; //0x0030
+	class CCSGOInterpolationInfoPB* player_interp; //0x0038
+	class CMsgVector* pShootPosition; //0x0040
+	class CMsgVector* pTargetHeadPositionCheck; //0x0048
+	class CMsgVector* pTargetAbsPositionCheck; //0x0050
+	class CMsgQAngle* pTargetAngPositionCheck; //0x0058
+	int32_t nRenderTickCount; //0x0060
+	float flRenderTickFraction; //0x0064
+	int32_t nPlayerTickCount; //0x0068
+	float flPlayerTickFraction; //0x006C
+	int32_t nFrameNumber; //0x0070
+	int32_t nTargetEntIndex; //0x0074
+
+	CMsgQAngle* CreateQAngle()
+	{
+		using fOriginal = CMsgQAngle*(CS_FASTCALL*)(void*);
+		auto oOriginal = reinterpret_cast<fOriginal>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 89 45 ? 49 8D 8D")), 0x1));
+		return oOriginal(nullptr);
+	}
+
+	CMsgVector* CreateVector()
+	{
+		using fOriginal = CMsgVector*(CS_FASTCALL*)(void*);
+		auto oOriginal = reinterpret_cast<fOriginal>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 89 45 ? F3 0F 10 06")), 0x1));
+		return oOriginal(nullptr);
+	}
+
+	CCSGOInterpolationInfoPB_CL* CreateInterpCL()
+	{
+		using fOriginal = CCSGOInterpolationInfoPB_CL*(CS_FASTCALL*)(void*);
+		auto oOriginal = reinterpret_cast<fOriginal>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 89 43 ? 48 8B 43 ? F3 0F 10 45")), 0x1));
+		return oOriginal(nullptr);
+	}
+
+	CCSGOInterpolationInfoPB* CreateInterp()
+	{
+		using fOriginal = CCSGOInterpolationInfoPB*(CS_FASTCALL*)(void*);
+		auto oOriginal = reinterpret_cast<fOriginal>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 89 43 ? 8B 45")), 0x1));
+		return oOriginal(nullptr);
+	}
 };
 
 static_assert(sizeof(CCSGOInputHistoryEntryPB) == 0x78);
@@ -236,7 +273,7 @@ public:
 	CSubtickMoveStep* AddSubtickMove()
 	{
 		using fn_add_subtick_move_step = CSubtickMoveStep* (__fastcall*)(void*);
-		static fn_add_subtick_move_step fn_create_new_subtick_move_step = reinterpret_cast<fn_add_subtick_move_step>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, "E8 ? ? ? ? 48 8B D0 48 8D 4F 18 E8 ? ? ? ? 48 8B D0"), 0x1));
+		static fn_add_subtick_move_step fn_create_new_subtick_move_step = reinterpret_cast<fn_add_subtick_move_step>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 8B D0 48 8D 4F 18 E8 ? ? ? ? 48 8B D0")), 0x1));
 
 		if (subtickMovesField.pRep && subtickMovesField.nCurrentSize < subtickMovesField.pRep->nAllocatedSize)
 			return subtickMovesField.pRep->tElements[subtickMovesField.nCurrentSize++];
@@ -266,6 +303,13 @@ public:
 				if (auto step_move = subtickMovesField[i]; step_move && step_move->nButton == button)
 					step_move->nButton = 0;
 		}
+	}
+
+	void PressButton(std::uint64_t button) noexcept
+	{
+		float frac = I::GlobalVars->flTickFraction1;
+		this->WriteButtonEvent(button, true, frac);
+		this->WriteButtonEvent(button, false, frac + 0.001f);
 	}
 
 	int CalculateCmdCRCSize()
@@ -300,7 +344,7 @@ static_assert(sizeof(CCSGOUserCmdPB) == 0x40);
 struct CInButtonState
 {
 public:
-	MEM_PAD(0x8) // 0x0 VTABLE
+	MEM_PAD(0x8); // 0x0 VTABLE
 	std::uint64_t nValue; // 0x8
 	std::uint64_t nValueChanged; // 0x10
 	std::uint64_t nValueScroll; // 0x18
@@ -309,12 +353,16 @@ static_assert(sizeof(CInButtonState) == 0x20);
 
 class CUserCmd
 {
+private:
+	void* VTable;
+
 public:
-	MEM_PAD(0x8); // 0x0 VTABLE
 	MEM_PAD(0x10); // TODO: find out what this is, added 14.08.2024
 	CCSGOUserCmdPB csgoUserCmd; // 0x18
 	CInButtonState nButtons; // 0x58
-	MEM_PAD(0x20); // 0x78
+	MEM_PAD(0x10);
+	bool bHasBeenPredicted;
+	MEM_PAD(0xF);
 
 	CCSGOInputHistoryEntryPB* GetInputHistoryEntry(int nIndex)
 	{
@@ -322,6 +370,25 @@ public:
 			return nullptr;
 
 		return csgoUserCmd.inputHistoryField.pRep->tElements[nIndex];
+	}
+
+	CCSGOInputHistoryEntryPB* AddInputHistoryEntry()
+	{
+		using fOriginal = CCSGOInputHistoryEntryPB*(CS_FASTCALL*)(void*);
+		auto oOriginal = reinterpret_cast<fOriginal>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 48 8B D0 49 8B CE E8 ? ? ? ? 4C 8B E0")), 0x1));
+		return oOriginal(nullptr);
+	}
+
+	void ClearInputHistory()
+	{
+		for (int i = 0; i < csgoUserCmd.inputHistoryField.pRep->nAllocatedSize; i++)
+		{
+			I::MemAlloc->Free(csgoUserCmd.inputHistoryField.pRep->tElements[i]);
+			csgoUserCmd.inputHistoryField.pRep->tElements[i] = nullptr;
+		}
+		csgoUserCmd.inputHistoryField.nCurrentSize = 0;
+		csgoUserCmd.inputHistoryField.nTotalSize = 0;
+		csgoUserCmd.inputHistoryField.pRep->nAllocatedSize = 0;
 	}
 
 	void SetSubTickAngle(const QAngle_t& angView)

@@ -79,7 +79,7 @@ namespace F::VISUALS::OVERLAY
 	class CTextComponent : public CBaseDirectionalComponent
 	{
 	public:
-		CTextComponent(const bool bIsMenuItem, const EAlignSide nAlignSide, const EAlignDirection nAlignDirection, const ImFont* pFont, const char* szText, const std::size_t uOverlayVarIndex);
+		CTextComponent(const bool bIsMenuItem, const EAlignSide nAlignSide, const EAlignDirection nAlignDirection, ImFont* pFont, const char* szText, const std::size_t uOverlayVarIndex);
 		~CTextComponent();
 
 		void Render(ImDrawList* pDrawList, const ImVec2& vecPosition) final;
@@ -87,7 +87,7 @@ namespace F::VISUALS::OVERLAY
 	private:
 		bool bIsMenuItem = false;
 		// font & text for displaying
-		const ImFont* pFont = nullptr;
+		ImFont* pFont = nullptr;
 		char* szText = nullptr;
 		// hovered state for context menu
 		bool bIsHovered = false;

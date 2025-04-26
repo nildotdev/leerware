@@ -6,11 +6,18 @@
 // used: fnv-1a hash
 #include "../utilities/fnv1a.h"
 
-#define SCHEMA_ADD_OFFSET(TYPE, NAME, OFFSET)                                                                 \
-	[[nodiscard]] CS_INLINE std::add_lvalue_reference_t<TYPE> NAME()                                          \
-	{                                                                                                         \
-		static const std::uint32_t uOffset = OFFSET;                                                          \
-		return *reinterpret_cast<std::add_pointer_t<TYPE>>(reinterpret_cast<std::uint8_t*>(this) + (uOffset)); \
+#define SCHEMA_ADD_OFFSET(TYPE, NAME, OFFSET)                                                                   \
+	[[nodiscard]] CS_INLINE std::add_lvalue_reference_t<TYPE> NAME()                                            \
+	{                                                                                                           \
+		static const std::uint32_t uOffset = OFFSET;                                                            \
+		std::uint8_t* pValue = reinterpret_cast<std::uint8_t*>(this) + (uOffset);							    \
+		if (IsBadReadPtr(pValue, sizeof(TYPE)))																	\
+		{																										\
+			TYPE default_value{};																				\
+			return default_value;																				\
+		}																										\
+																												\
+		return *reinterpret_cast<std::add_pointer_t<TYPE>>(pValue);												\
 	}
 
 #define SCHEMA_ADD_POFFSET(TYPE, NAME, OFFSET)                                                               \

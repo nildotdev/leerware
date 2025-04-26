@@ -17,6 +17,15 @@ namespace CONVAR
 	inline CConVar* game_mode = nullptr;
 
 	inline CConVar* mp_teammates_are_enemies = nullptr;
+	inline CConVar* mp_damage_scale_ct_head = nullptr;
+	inline CConVar* mp_damage_scale_t_head = nullptr;
+	inline CConVar* mp_damage_scale_ct_body = nullptr;
+	inline CConVar* mp_damage_scale_t_body = nullptr;
 
 	inline CConVar* sv_autobunnyhopping = nullptr;
+	inline CConVar* sv_airaccelerate = nullptr;
+	inline CConVar* sv_quantize_movement_input = nullptr;
+	inline CConVar* sv_maxunlag = nullptr;
+	inline CConVar* sv_accelerate = nullptr;
+	inline CConVar* sv_maxspeed = nullptr;
 }

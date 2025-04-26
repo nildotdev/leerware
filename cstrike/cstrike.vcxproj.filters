@@ -52,6 +52,9 @@
     <Filter Include="features\lagcomp">
       <UniqueIdentifier>{c5bebcde-da68-4ac6-882b-83b461578976}</UniqueIdentifier>
     </Filter>
+    <Filter Include="features\prediction">
+      <UniqueIdentifier>{e6b525d4-ac9f-4461-93e6-61b3d75ce0e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dependencies\imgui\imconfig.h">
@@ -347,6 +350,24 @@
     <ClInclude Include="features\lagcomp\lagcomp.h">
       <Filter>features\lagcomp</Filter>
     </ClInclude>
+    <ClInclude Include="features\prediction\engine.h">
+      <Filter>features\prediction</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\inetworkgameservice.h">
+      <Filter>sdk\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\cprediction.h">
+      <Filter>sdk\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\datatypes\cnetworkserializepb.h">
+      <Filter>sdk\datatypes</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\cdebugoverlaygamesystem.h">
+      <Filter>sdk\interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\interfaces\isource2client.h">
+      <Filter>sdk\interfaces</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\dependencies\imgui\imgui.cpp">
@@ -480,6 +501,12 @@
     </ClCompile>
     <ClCompile Include="features\penetration\penetration.cpp">
       <Filter>features\penetration</Filter>
+    </ClCompile>
+    <ClCompile Include="features\lagcomp\lagcomp.cpp">
+      <Filter>features\lagcomp</Filter>
+    </ClCompile>
+    <ClCompile Include="features\prediction\engine.cpp">
+      <Filter>features\prediction</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -34,7 +34,9 @@ namespace VTABLE
 	{
 		enum
 		{
-			CREATEMOVE = 5U,
+			ONADDENTITY = 15U,
+			ONREMOVEENTITY = 16U,
+			CREATEMOVE = 21U,
 			MOUSEINPUTENABLED = 19U,
 			FRAMESTAGENOTIFY = 36U,
 		};
@@ -63,6 +65,9 @@ class CCSGOInput;
 class CViewSetup;
 class CUserCmd;
 class CMeshData;
+class CGameEntitySystem;
+class CEntityInstance;
+class CBaseHandle;
 
 namespace H
 {
@@ -78,15 +83,21 @@ namespace H
 
 	// game's functions
 	ViewMatrix_t* CS_FASTCALL GetMatrixForView(CRenderGameSystem* pRenderGameSystem, IViewRender* pViewRender, ViewMatrix_t* pOutWorldToView, ViewMatrix_t* pOutViewToProjection, ViewMatrix_t* pOutWorldToProjection, ViewMatrix_t* pOutWorldToPixels);
-	bool CS_FASTCALL CreateMove(CCSGOInput* pInput, int nSlot, CUserCmd* cmd);
+	//bool CS_FASTCALL CreateMove(CCSGOInput* pInput, int nSlot, CUserCmd* pCmd);
+	void CS_FASTCALL CreateMove(CCSGOInput* pInput, int nSlot, bool bActive);
 	bool CS_FASTCALL MouseInputEnabled(void* pThisptr);
 	void CS_FASTCALL FrameStageNotify(void* rcx, int nFrameStage);
 	__int64* CS_FASTCALL LevelInit(void* pClientModeShared, const char* szNewMap);
 	__int64 CS_FASTCALL LevelShutdown();
 	void CS_FASTCALL OverrideView(void* pClientModeCSNormal, CViewSetup* pSetup);
+	void CS_FASTCALL ValidateInput(CCSGOInput* pInput, int a1);
 	void CS_FASTCALL DrawObject(void* pAnimatableSceneObjectDesc, void* pDx11, CMeshData* arrMeshDraw, int nDataCount, void* pSceneView, void* pSceneLayer, void* pUnk, void* pUnk2);
 	void* IsRelativeMouseMode(void* pThisptr, bool bActive);
 	void RenderBatchList(void* a1);
+	void CS_FASTCALL DrawScopeOverlay(void* rcx, void* a2);
+	float CS_FASTCALL GetFOV(void* pCameraServices);
+	void* CS_FASTCALL OnAddEntity(CGameEntitySystem* pThis, CEntityInstance* pInstance, CBaseHandle hHandle);
+	void CS_FASTCALL OnRemoveEntity(CGameEntitySystem* pThis, CEntityInstance* pInstance, CBaseHandle hHandle);
 
 	/* @section: managers */
 	inline CBaseHookObject<decltype(&Present)> hkPresent = {};
@@ -102,7 +113,12 @@ namespace H
 	inline CBaseHookObject<decltype(&LevelInit)> hkLevelInit = {};
 	inline CBaseHookObject<decltype(&LevelShutdown)> hkLevelShutdown = {};
 	inline CBaseHookObject<decltype(&OverrideView)> hkOverrideView = {};
+	inline CBaseHookObject<decltype(&ValidateInput)> hkValidateInput = {};
+	inline CBaseHookObject<decltype(&OnAddEntity)> hkOnAddEntity = {};
+	inline CBaseHookObject<decltype(&OnRemoveEntity)> hkOnRemoveEntity = {};
 
 	inline CBaseHookObject<decltype(&DrawObject)> hkDrawObject = {};
 	inline CBaseHookObject<decltype(&RenderBatchList)> hkRenderBatchList = {};
+	inline CBaseHookObject<decltype(&DrawScopeOverlay)> hkDrawScopeOverlay = {};
+	inline CBaseHookObject<decltype(&GetFOV)> hkGetFOV = {};
 }

@@ -148,6 +148,9 @@ bool I::Setup()
 		bSuccess &= (ResourceHandleUtils != nullptr);
 	}
 
+	Prediction = Capture<CPrediction>(pClientRegister, CL_PREDICTION);
+	bSuccess &= (Prediction != nullptr);
+
 #pragma endregion
 
 	// @ida:  #STR: "r_gpu_mem_stats", "-threads", "CTSListBase: Misaligned list\n", "CTSQueue: Misaligned queue\n", "Display GPU memory usage.", "-r_max_device_threads"
@@ -185,7 +188,14 @@ bool I::Setup()
 
 	// @ida: #STR: "Physics/TraceShape (Client)"
 	// @ida: #STR: "Weapon_Knife.Stab" then go up
-	GameTraceManager = *reinterpret_cast<CGameTraceManager**>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 8B 1D ? ? ? ? 24 ? 0C ? F3 0F 7F 45")), 0x3, 0x0));
+	/*
+	XREF Signature #1 @ 1804DA671: 4C 8B 25 ? ? ? ? 24
+	XREF Signature #2 @ 18024B7CE: 4C 8B 35 ? ? ? ? 24
+	XREF Signature #3 @ 1806965AF: 4C 8B 2D ? ? ? ? 24
+	XREF Signature #4 @ 180A05B8B: 48 8B 35 ? ? ? ? 80 E1
+	XREF Signature #5 @ 18050B2C9: 48 8B 0D ? ? ? ? 80 4D
+	*/
+	GameTraceManager = *reinterpret_cast<CGameTraceManager**>(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("4C 8B 25 ? ? ? ? 24")), 0x3, 0x0));
 	bSuccess &= (GameTraceManager != nullptr);
 
 	return bSuccess;
@@ -232,7 +242,7 @@ void I::CreateRenderTarget()
 				desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DMS;
 				if (FAILED(Device->CreateRenderTargetView(pBackBuffer, &desc, &RenderTargetView)))
 				{
-					L_PRINT(LOG_WARNING) << CS_XOR("failed to create render target view with D3D11_RTV_DIMENSION_TEXTURE2D...");
+					L_PRINT(LOG_WARNING) << CS_XOR("failed to create render target view with D3D11_RTV_DIMENSION_TEXTURE2DMS...");
 					L_PRINT(LOG_INFO) << CS_XOR("retrying...");
 					if (FAILED(Device->CreateRenderTargetView(pBackBuffer, NULL, &RenderTargetView)))
 					{

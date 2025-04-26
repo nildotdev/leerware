@@ -34,7 +34,6 @@ class CBasePlayerWeaponVData
 public:
 	CS_CLASS_NO_INITIALIZER(CBasePlayerWeaponVData);
 
-	SCHEMA_ADD_FIELD(bool, IsFullAuto, "CBasePlayerWeaponVData->m_bIsFullAuto");
 	SCHEMA_ADD_FIELD(std::int32_t, GetMaxClip1, "CBasePlayerWeaponVData->m_iMaxClip1");
 };
 
@@ -56,4 +55,6 @@ public:
 	SCHEMA_ADD_FIELD(float, GetArmorRatio, "CCSWeaponBaseVData->m_flArmorRatio");
 	SCHEMA_ADD_FIELD(float, GetHeadshotMultiplier, "CCSWeaponBaseVData->m_flHeadshotMultiplier");
 	SCHEMA_ADD_FIELD(int, GetDamage, "CCSWeaponBaseVData->m_nDamage");
+	SCHEMA_ADD_FIELD(bool, IsFullAuto, "CCSWeaponBaseVData->m_bIsFullAuto");
+	SCHEMA_ADD_FIELD(bool, IsRevolver, "CCSWeaponBaseVData->m_bIsRevolver");
 };

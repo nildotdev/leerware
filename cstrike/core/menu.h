@@ -83,12 +83,15 @@ namespace MENU
 	inline float flDpiScale = 1.f;
 }
 
+struct RageBotVars_t;
+
 namespace T
 {
 	/* @section: main */
 	void Render(const char* szTabBar, const CTab* arrTabs, const unsigned long long nTabsCount, int* nCurrentTab, ImGuiTabBarFlags flags = ImGuiTabBarFlags_NoCloseWithMiddleMouseButton | ImGuiTabBarFlags_NoTooltip);
 
 	/* @section: tabs */
+	void DrawRagebotVariables(RageBotVars_t* vars);
 	void RageBot();
 	void AntiAim();
 	void LegitBot();

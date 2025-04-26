@@ -39,6 +39,8 @@
 
 // used: menu
 #include "menu.h"
+#include "../features/prediction/engine.h"
+#include <deque>
 
 bool H::Setup()
 {
@@ -85,7 +87,7 @@ bool H::Setup()
 	L_PRINT(LOG_INFO) << CS_XOR("\"GetMatrixForView\" hook has been created");
 
 	// @ida: #STR: cl: CreateMove clamped invalid attack history index %d in frame history to -1. Was %d, frame history size %d.\n
-	if (!hkCreateMove.Create(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 8B C4 4C 89 40 ? 48 89 48 ? 55 53 57")), reinterpret_cast<void*>(&CreateMove)))
+	if (!hkCreateMove.Create(MEM::FindPattern(CLIENT_DLL, CS_XOR("85 D2 0F 85 ? ? ? ? 48 8B C4 44 88 40" /*"48 8B C4 4C 89 40 ? 48 89 48 ? 55 53 57"*/)), reinterpret_cast<void*>(&CreateMove)))
 		return false;
 	L_PRINT(LOG_INFO) << CS_XOR("\"CreateMove\" hook has been created");
 
@@ -121,8 +123,11 @@ bool H::Setup()
 	//*(float*)(pSetup + 0x4A0) = v22; // m_OrthoBottom
 	if (!hkOverrideView.Create(MEM::FindPattern(CLIENT_DLL, CS_XOR("48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 41 56 41 57 48 83 EC ? 48 8B FA E8")), reinterpret_cast<void*>(&OverrideView)))
 		return false;
-
 	L_PRINT(LOG_INFO) << CS_XOR("\"OverrideView\" hook has been created");
+
+	if (!hkValidateInput.Create(MEM::FindPattern(CLIENT_DLL, CS_XOR("40 53 48 83 EC ? 48 8B D9 E8 ? ? ? ? C6 83 ? ? ? ? ? 33 C0 48 C7 83")), reinterpret_cast<void*>(&ValidateInput)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"ValidateInput\" hook has been created");
 
 	// Credit: https://www.unknowncheats.me/forum/4253223-post6185.html
 	if (!hkDrawObject.Create(MEM::FindPattern(SCENESYSTEM_DLL, CS_XOR("48 8B C4 48 89 50 ? 53")), reinterpret_cast<void*>(&DrawObject)))
@@ -136,6 +141,22 @@ bool H::Setup()
 	if (!hkRenderBatchList.Create(MEM::FindPattern(SCENESYSTEM_DLL, CS_XOR("40 53 48 83 EC ? 83 79 ? ? 48 8B D9 0F 8C")), reinterpret_cast<void*>(&RenderBatchList)))
 		return false;
 	L_PRINT(LOG_INFO) << CS_XOR("\"RenderBatchList\" hook has been created");
+
+	if (!hkDrawScopeOverlay.Create(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? 80 7C 24 ? ? 74 ? F3 0F 10 0D")), 0x1), reinterpret_cast<void*>(&DrawScopeOverlay)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"DrawScopeOverlay\" hook has been created");
+
+	if (!hkGetFOV.Create(MEM::GetAbsoluteAddress(MEM::FindPattern(CLIENT_DLL, CS_XOR("E8 ? ? ? ? F3 0F 11 45 ? 48 8B 5C 24")), 0x1), reinterpret_cast<void*>(&GetFOV)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"GetFOV\" hook has been created");
+
+	if (!hkOnAddEntity.Create(MEM::GetVFunc(I::GameResourceService->pGameEntitySystem, VTABLE::CLIENT::ONADDENTITY), reinterpret_cast<void*>(&OnAddEntity)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"OnAddEntity\" hook has been created");
+
+	if (!hkOnRemoveEntity.Create(MEM::GetVFunc(I::GameResourceService->pGameEntitySystem, VTABLE::CLIENT::ONREMOVEENTITY), reinterpret_cast<void*>(&OnRemoveEntity)))
+		return false;
+	L_PRINT(LOG_INFO) << CS_XOR("\"OnRemoveEntity\" hook has been created");
 
 	return true;
 }
@@ -154,7 +175,10 @@ HRESULT __stdcall H::Present(IDXGISwapChain* pSwapChain, UINT uSyncInterval, UIN
 
 	// recreate it if it's not valid
 	if (I::RenderTargetView == nullptr)
+	{
+		L_PRINT(LOG_INFO) << CS_XOR("Target view is nullptr. Recreating...");
 		I::CreateRenderTarget();
+	}
 
 	// set our render target
 	if (I::RenderTargetView != nullptr)
@@ -171,7 +195,10 @@ HRESULT CS_FASTCALL H::ResizeBuffers(IDXGISwapChain* pSwapChain, std::uint32_t n
 
 	auto hResult = oResizeBuffer(pSwapChain, nBufferCount, nWidth, nHeight, newFormat, nFlags);
 	if (SUCCEEDED(hResult))
+	{
+		L_PRINT(LOG_INFO) << CS_XOR("Recreating target view after resizing");
 		I::CreateRenderTarget();
+	}
 
 	return hResult;
 }
@@ -208,32 +235,163 @@ ViewMatrix_t* CS_FASTCALL H::GetMatrixForView(CRenderGameSystem* pRenderGameSyst
 	return matResult;
 }
 
-bool CS_FASTCALL H::CreateMove(CCSGOInput* pInput, int nSlot, CUserCmd* cmd)
+void DebugInputHistory(CCSGOInputHistoryEntryPB* pInputEntry)
+{
+	if (pInputEntry == nullptr)
+		return;
+	CMsgQAngle* view = pInputEntry->pViewAngles;
+	if (view)
+		L_PRINT(LOG_INFO) << "pViewAngles: " << view->angValue;
+
+	CMsgVector* shootpos = pInputEntry->pShootPosition;
+	if (shootpos)
+		L_PRINT(LOG_INFO) << "pShootPosition: " << shootpos->vecValue;
+
+	CMsgVector* headpos = pInputEntry->pTargetHeadPositionCheck;
+	if (headpos)
+		L_PRINT(LOG_INFO) << "pTargetHeadPositionCheck: " << headpos->vecValue;
+
+	CMsgVector* targetpos = pInputEntry->pTargetAbsPositionCheck;
+	if (targetpos)
+		L_PRINT(LOG_INFO) << "pTargetAbsPositionCheck: " << targetpos->vecValue;
+
+	CMsgQAngle* targetang = pInputEntry->pTargetAngPositionCheck;
+	if (targetang)
+		L_PRINT(LOG_INFO) << "pTargetAngPositionCheck: " << targetang->angValue;
+
+	CCSGOInterpolationInfoPB_CL* cl_interp = pInputEntry->cl_interp;
+	if (cl_interp)
+	{
+		L_PRINT(LOG_INFO) << "cl_interp:";
+		L_PRINT(LOG_INFO) << "flFraction = " << cl_interp->flFraction;
+	}
+	CCSGOInterpolationInfoPB* sv_interp0 = pInputEntry->sv_interp0;
+	if (sv_interp0)
+	{
+		L_PRINT(LOG_INFO) << "sv_interp0:";
+		L_PRINT(LOG_INFO) << "flFraction = " << sv_interp0->flFraction;
+		L_PRINT(LOG_INFO) << "nSrcTick = " << sv_interp0->nSrcTick;
+		L_PRINT(LOG_INFO) << "nDstTick = " << sv_interp0->nDstTick;
+	}
+	CCSGOInterpolationInfoPB* sv_interp1 = pInputEntry->sv_interp1;
+	if (sv_interp1)
+	{
+		L_PRINT(LOG_INFO) << "sv_interp1:";
+		L_PRINT(LOG_INFO) << "flFraction = " << sv_interp1->flFraction;
+		L_PRINT(LOG_INFO) << "nSrcTick = " << sv_interp1->nSrcTick;
+		L_PRINT(LOG_INFO) << "nDstTick = " << sv_interp1->nDstTick;
+	}
+	CCSGOInterpolationInfoPB* player_interp = pInputEntry->player_interp;
+	if (player_interp)
+	{
+		L_PRINT(LOG_INFO) << "player_interp:";
+		L_PRINT(LOG_INFO) << "flFraction = " << player_interp->flFraction;
+		L_PRINT(LOG_INFO) << "nSrcTick = " << player_interp->nSrcTick;
+		L_PRINT(LOG_INFO) << "nDstTick = " << player_interp->nDstTick;
+	}
+
+	double flTick = static_cast<double>(pInputEntry->nPlayerTickCount) + static_cast<double>(pInputEntry->flPlayerTickFraction);
+	L_PRINT(LOG_INFO) << "flTick = " << flTick;
+
+	L_PRINT(LOG_INFO) << "nTargetEntIndex = " << pInputEntry->nTargetEntIndex;
+}
+
+
+
+static void double_tap()
+{
+	if (!C_GET(bool, Vars.bRageEnable) || !C_GET(bool, Vars.bDoubletap))
+		return;
+
+	C_CSWeaponBaseGun* active_weapon = SDK::LocalPawn->GetCurrentWeapon();
+	if (active_weapon == nullptr)
+		return;
+	CUserCmd* cmd = SDK::Cmd;
+	static int shot_count{};
+	float offset_tick{};
+	float temp = active_weapon->GetNextPrimaryAttackTickRatio() + modff(active_weapon->GetWatOffset(), &offset_tick);
+	int next_attack = active_weapon->GetNextPrimaryAttackTick();
+	float shoot_tick = next_attack + offset_tick;
+	if (temp >= 1)
+		++shoot_tick;
+	if (temp < 0)
+		--shoot_tick;
+
+	bool f = shot_count % 2;
+
+	if (cmd->csgoUserCmd.nAttack1StartHistoryIndex > -1)
+		shot_count++;
+
+	for (int i = 0; i < cmd->csgoUserCmd.inputHistoryField.pRep->nAllocatedSize; i++)
+	{
+		auto input_history = cmd->GetInputHistoryEntry(i);
+		if (input_history == nullptr)
+			continue;
+
+		input_history->nPlayerTickCount = f ? shoot_tick - 1 : 0;
+		input_history->flPlayerTickFraction = 0.f;
+	}
+	cmd->csgoUserCmd.nAttack1StartHistoryIndex = -1;
+}
+
+std::deque<C_SmokeGrenadeProjectile*> smokeProjectiles{};
+
+void HandleRemovals(C_CSPlayerPawn* pLocalPawn)
+{
+	for (C_SmokeGrenadeProjectile* smoke : smokeProjectiles)
+	{
+		if (C_GET(RemovalsDropdown_t, Vars.nRemovals) & ERemovalsDropdown::REMOVALS_SMOKE)
+		{
+			smoke->DidSmokeEffect() = true;
+			smoke->GetSmokeDetonationPos() = Vector_t{};
+			continue;
+		}
+
+		if (C_GET(bool, Vars.bWorldModulation))
+		{
+			Color_t smokeColor = C_GET(ColorPickerVar_t, Vars.colParticles).colValue;
+			smoke->GetSmokeColor() = Vector_t(smokeColor.r, smokeColor.g, smokeColor.b);
+		}
+	}
+
+	if (C_GET(unsigned int, Vars.nRemovals) & REMOVALS_FLASH)
+		pLocalPawn->GetFlashMaxAlpha() = 0.0f;
+	else
+		pLocalPawn->GetFlashMaxAlpha() = 255.0f;
+}
+
+//bool CS_FASTCALL H::CreateMove(CCSGOInput* pInput, int nSlot, CUserCmd* pCmd)
+void CS_FASTCALL H::CreateMove(CCSGOInput* pInput, int nSlot, bool bActive)
 {
 	const auto oCreateMove = hkCreateMove.GetOriginal();
-	const bool bResult = oCreateMove(pInput, nSlot, cmd);
-
+	oCreateMove(pInput, nSlot, bActive);
 	if (!I::Engine->IsConnected() || !I::Engine->IsInGame())
-		return bResult;
+		return;
 
-	SDK::Cmd = cmd;
+	CUserCmd* pCmd = pInput->GetUserCmd();
+	SDK::Cmd = pCmd;
 	I::Input = pInput;
 	if (SDK::Cmd == nullptr)
-		return bResult;
+		return;
 
 	CBaseUserCmdPB* pBaseCmd = SDK::Cmd->csgoUserCmd.pBaseCmd;
 	if (pBaseCmd == nullptr)
-		return bResult;
+		return;
 
 	SDK::LocalController = CCSPlayerController::GetLocalPlayerController();
 	if (SDK::LocalController == nullptr)
-		return bResult;
+		return;
 
 	SDK::LocalPawn = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(SDK::LocalController->GetPawnHandle());
 	if (SDK::LocalPawn == nullptr)
-		return bResult;
+		return;
 
-	F::OnCreateMove(SDK::Cmd, pBaseCmd, SDK::LocalController);
+	HandleRemovals(SDK::LocalPawn);
+	g_PredictionSystem->Begin(pInput, pCmd);
+	{
+		F::OnCreateMove(SDK::Cmd, pBaseCmd, SDK::LocalController);
+	}
+	g_PredictionSystem->End(pInput, pCmd);
 
 	// TODO : We need to fix CRC saving
 	// 
@@ -245,8 +403,7 @@ bool CS_FASTCALL H::CreateMove(CCSGOInput* pInput, int nSlot, CUserCmd* cmd)
 	//if (CRC::CalculateCRC(pBaseCmd) == true)
 	//	CRC::Apply(SDK::Cmd);
 
-
-	return bResult;
+	double_tap();
 }
 
 bool CS_FASTCALL H::MouseInputEnabled(void* pThisptr)
@@ -365,13 +522,13 @@ void H::RenderBatchList(void* a1)
 					continue;
 
 				// Particles, e.g. molotov
-				if (classname.find("CParticleObjectDesc") != std::string::npos)
+				if (classname.find(CS_XOR("CParticleObjectDesc")) != std::string::npos)
 				{
 					meshDraw->m_rgba = C_GET(ColorPickerVar_t, Vars.colParticles).colValue;
 				}
 
 				// World modulation
-				if (classname.find("CAnimatableSceneObjectDesc") != std::string::npos)
+				if (classname.find(CS_XOR("CAnimatableSceneObjectDesc")) != std::string::npos)
 				{
 					auto materialName = std::string_view(meshDraw->m_pMaterial->GetName());
 					if (materialName.find("props") != std::string::npos)
@@ -380,12 +537,12 @@ void H::RenderBatchList(void* a1)
 					}
 				}
 
-				if (classname.find("CBaseSceneObjectDesc") != std::string::npos)
+				if (classname.find(CS_XOR("CBaseSceneObjectDesc")) != std::string::npos)
 				{
 					meshDraw->m_rgba = C_GET(ColorPickerVar_t, Vars.colMisc).colValue;
 				}
 
-				if (classname.find("CAggregateSceneObjectDesc") != std::string::npos)
+				if (classname.find(CS_XOR("CAggregateSceneObjectDesc")) != std::string::npos)
 				{
 					if (meshDraw->m_pObject)
 					{
@@ -401,4 +558,120 @@ void H::RenderBatchList(void* a1)
 	}
 
 	oOriginal(a1);
+}
+
+void CS_FASTCALL H::DrawScopeOverlay(void* rcx, void* a2)
+{
+	const auto oDrawScopeOverlay = hkDrawScopeOverlay.GetOriginal();
+	if (C_GET(bool, Vars.bRemoveScope))
+		return;
+
+	oDrawScopeOverlay(rcx, a2);
+}
+
+float CS_FASTCALL H::GetFOV(void* pCameraServices)
+{
+	const auto oGetFOV = hkGetFOV.GetOriginal();
+	if (pCameraServices == nullptr || !I::Engine->IsInGame() || !I::Engine->IsConnected())
+		return oGetFOV(pCameraServices);
+	if (SDK::LocalController == nullptr || !SDK::LocalController->IsPawnAlive())
+		return oGetFOV(pCameraServices);
+	if (C_GET(bool, Vars.bRemoveScope))
+		return C_GET(int, Vars.nFOV);
+
+	if (SDK::LocalPawn != nullptr && SDK::LocalPawn->IsScoped())
+		return oGetFOV(pCameraServices);
+	else
+		return C_GET(int, Vars.nFOV);
+}
+
+void* CS_FASTCALL H::OnAddEntity(CGameEntitySystem* pThis, CEntityInstance* pInstance, CBaseHandle hHandle)
+{
+	const auto oOriginal = hkOnAddEntity.GetOriginal();
+	if (pInstance == nullptr || !hHandle.IsValid())
+		return oOriginal(pThis, pInstance, hHandle);
+
+	SchemaClassInfoData_t* entityInfo = nullptr;
+	pInstance->GetSchemaClassInfo(&entityInfo);
+	if (entityInfo == nullptr)
+		return oOriginal(pThis, pInstance, hHandle);
+
+	const char* szName = entityInfo->szName;
+	if (szName == nullptr)
+		return oOriginal(pThis, pInstance, hHandle);
+
+	const FNV1A_t uHashedName = FNV1A::Hash(szName);
+
+	switch (uHashedName)
+	{
+	case FNV1A::HashConst("CCSPlayerController"):
+	{
+		CCSPlayerController* controller = I::GameResourceService->pGameEntitySystem->Get<CCSPlayerController>(hHandle);
+		if (controller == nullptr)
+			return oOriginal(pThis, pInstance, hHandle);
+
+		SDK::PlayerControllers.push_back(controller);
+	}
+	break;
+	case FNV1A::HashConst("C_SmokeGrenadeProjectile"):
+	{
+		C_SmokeGrenadeProjectile* smoke = I::GameResourceService->pGameEntitySystem->Get<C_SmokeGrenadeProjectile>(hHandle);
+		if (smoke == nullptr)
+			return oOriginal(pThis, pInstance, hHandle);
+
+		smokeProjectiles.push_back(smoke);
+	}
+	break;
+	}
+
+	return oOriginal(pThis, pInstance, hHandle);
+}
+
+void CS_FASTCALL H::OnRemoveEntity(CGameEntitySystem* pThis, CEntityInstance* pInstance, CBaseHandle hHandle)
+{
+	const auto oOriginal = hkOnRemoveEntity.GetOriginal();
+	if (pInstance == nullptr || !hHandle.IsValid())
+		return oOriginal(pThis, pInstance, hHandle);
+
+	SchemaClassInfoData_t* entityInfo = nullptr;
+	pInstance->GetSchemaClassInfo(&entityInfo);
+	if (entityInfo == nullptr)
+		return oOriginal(pThis, pInstance, hHandle);
+
+	const char* szName = entityInfo->szName;
+	if (szName == nullptr)
+		return oOriginal(pThis, pInstance, hHandle);
+
+	const FNV1A_t uHashedName = FNV1A::Hash(szName);
+
+	switch (uHashedName)
+	{
+	case FNV1A::HashConst("CCSPlayerController"):
+	{
+		CCSPlayerController* controller = I::GameResourceService->pGameEntitySystem->Get<CCSPlayerController>(hHandle);
+		if (controller == nullptr)
+			return oOriginal(pThis, pInstance, hHandle);
+
+		auto& vec = SDK::PlayerControllers;
+		auto it = std::find(vec.begin(), vec.end(), controller);
+		if (it != vec.end())
+			vec.erase(it);
+	}
+	break;
+
+	case FNV1A::HashConst("C_SmokeGrenadeProjectile"):
+	{
+		C_SmokeGrenadeProjectile* smoke = I::GameResourceService->pGameEntitySystem->Get<C_SmokeGrenadeProjectile>(hHandle);
+		if (smoke == nullptr)
+			return oOriginal(pThis, pInstance, hHandle);
+
+		auto& vec = smokeProjectiles;
+		auto it = std::find(vec.begin(), vec.end(), smoke);
+		if (it != vec.end())
+			vec.erase(it);
+	}
+	break;
+	}
+
+	oOriginal(pThis, pInstance, hHandle);
 }

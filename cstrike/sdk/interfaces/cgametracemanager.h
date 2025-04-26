@@ -33,12 +33,16 @@ static_assert(sizeof(SurfaceData_t) == 0x18);
 struct TraceHitboxData_t
 {
 public:
-	MEM_PAD(0x38);
-	int m_nHitGroup;
-	MEM_PAD(0x4);
-	int m_nHitboxId;
+	char* m_pName; //0x0000
+	char* m_pSurfaceProperties; //0x0008
+	char* m_pBoneName; //0x0010
+	char pad_0018[32]; //0x0018
+	int32_t m_nHitGroup; //0x0038
+	char pad_003C[12]; //0x003C
+	int16_t m_nHitboxId; //0x0048
+	char pad_004A[38]; //0x004A
 };
-static_assert(sizeof(TraceHitboxData_t) == 0x44);
+static_assert(sizeof(TraceHitboxData_t) == 0x70);
 
 class C_CSPlayerPawn;
 struct GameTrace_t

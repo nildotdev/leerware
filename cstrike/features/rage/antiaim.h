@@ -10,6 +10,6 @@ class QAngle_t;
 namespace F::RAGEBOT::ANTIAIM
 {
 	void OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn);
+	void CorrectMovement(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, QAngle_t angle);
 	bool ShouldRunAntiAim(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn);
-	QAngle_t* GetSavedAngles();
 }

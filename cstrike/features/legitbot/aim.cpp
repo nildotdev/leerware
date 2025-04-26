@@ -23,6 +23,10 @@
 // used: accessing fixed angles
 #include "../rage/antiaim.h"
 
+// used: backtrack
+#include "../lagcomp/lagcomp.h"
+#include "../../core/sdk.h"
+
 void F::LEGITBOT::AIM::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
 	// Check if the legitbot is enabled
@@ -40,8 +44,8 @@ QAngle_t GetRecoil(QAngle_t viewAngles, C_CSPlayerPawn* pLocal)
 	static QAngle_t OldPunch;//get last tick AimPunch angles
 	if (pLocal->GetShotsFired() >= 1)//only update aimpunch while shooting
 	{
-		QAngle_t delta = viewAngles - (viewAngles + (OldPunch - (pLocal->GetAimPuchAngle() * 2.f)));//get current AimPunch angles delta
-		return pLocal->GetAimPuchAngle() * 2.0f;//return correct aimpunch delta
+		QAngle_t delta = viewAngles - (viewAngles + (OldPunch - (pLocal->GetAimPunchAngle() * 2.f)));//get current AimPunch angles delta
+		return pLocal->GetAimPunchAngle() * 2.0f;//return correct aimpunch delta
 	}
 	else
 	{
@@ -62,11 +66,6 @@ QAngle_t GetAngularDifference(QAngle_t vCurAngle, Vector_t vecTarget, C_CSPlayer
 	vNewAngle -= vCurAngle;
 
 	return vNewAngle;
-}
-
-float GetAngularDistance(QAngle_t viewAngles, Vector_t vecTarget, C_CSPlayerPawn* pLocal)
-{
-	return GetAngularDifference(viewAngles, vecTarget, pLocal).Length2D();
 }
 
 void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLocalPawn, CCSPlayerController* pLocalController)
@@ -96,11 +95,9 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 		return;
 
 	// Extract our view angles properly
-	QAngle_t* pViewAngles = nullptr;
-	if (C_GET(bool, Vars.bAntiAimEnable))
-		pViewAngles = F::RAGEBOT::ANTIAIM::GetSavedAngles();
-	else
-		pViewAngles = reinterpret_cast<QAngle_t*>(&I::Input->vecViewAngle);
+	QAngle_t* pViewAngles = &I::Input->vecViewAngle;
+
+	Vector_t eyePosition = pLocalPawn->GetEyePosition();
 
 	// The current best distance
 	float flDistance = INFINITY;
@@ -109,36 +106,10 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 	// Cache'd position
 	Vector_t vecBestPosition = Vector_t();
 
-	// Entity loop
-	const int iHighestIndex = I::GameResourceService->pGameEntitySystem->GetHighestEntityIndex();
-
-	for (int nIndex = 1; nIndex <= iHighestIndex; nIndex++)
+	for (CCSPlayerController* pPlayer : SDK::PlayerControllers)
 	{
-		// Get the entity
-		C_BaseEntity* pEntity = I::GameResourceService->pGameEntitySystem->Get(nIndex);
-		if (pEntity == nullptr)
-			continue;
-
-		// Get the class info
-		SchemaClassInfoData_t* pClassInfo = nullptr;
-		pEntity->GetSchemaClassInfo(&pClassInfo);
-		if (pClassInfo == nullptr)
-			continue;
-
-		// Get the hashed name
-		const FNV1A_t uHashedName = FNV1A::Hash(pClassInfo->szName);
-
-		// Make sure they're a player controller
-		if (uHashedName != FNV1A::HashConst("CCSPlayerController"))
-			continue;
-
-		// Cast to player controller
-		CCSPlayerController* pPlayer = reinterpret_cast<CCSPlayerController*>(pEntity);
-		if (pPlayer == nullptr)
-			continue;
-
 		// Check the entity is not us
-		if (pPlayer == pLocalController)
+		if (pPlayer->IsLocalPlayerController())
 			continue;
 
 		// Get the player pawn
@@ -179,7 +150,7 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 		{
 			F::PENETRATION::c_auto_wall AutoWall;
 			F::PENETRATION::c_auto_wall::data_t hitData;
-			AutoWall.pen(hitData, pLocalPawn->GetEyePosition(), vecPos, pLocalPawn, pPawn, vData);
+			AutoWall.pen(hitData, eyePosition, vecPos, pLocalPawn, pPawn, vData);
 			if (!hitData.m_can_hit)
 				continue;
 		}
@@ -192,14 +163,14 @@ void F::LEGITBOT::AIM::AimAssist(CBaseUserCmdPB* pUserCmd, C_CSPlayerPawn* pLoca
 
 			// cast a ray from local player eye positon -> player head bone
 			// @note: would recommend checking for nullptrs
-			I::GameTraceManager->TraceShape(&ray, pLocalPawn->GetEyePosition(), vecPos, &filter, &trace);
+			I::GameTraceManager->TraceShape(&ray, eyePosition, vecPos, &filter, &trace);
 			// check if the hit entity is the one we wanted to check and if the trace end point is visible
 			if (trace.m_pHitEntity != pPawn || !trace.IsVisible()) // if invisible, skip this entity
 				continue;
 		}
 
 		// Get the distance/weight of the move
-		float flCurrentDistance = GetAngularDistance(*pViewAngles, vecPos, pLocalPawn);
+		float flCurrentDistance = MATH::CalculateFOVDistance(*pViewAngles, MATH::CalculateAngles(eyePosition, vecPos));
 		if (flCurrentDistance > C_GET(float, Vars.flAimRange))// Skip if this move out of aim range
 			continue;
 		if (pTarget && flCurrentDistance > flDistance) // Override if this is the first move or if it is a better move

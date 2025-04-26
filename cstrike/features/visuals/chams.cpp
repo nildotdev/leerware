@@ -5,6 +5,7 @@
 #include "../../sdk/interfaces/imaterialsystem.h"
 #include "../../sdk/interfaces/igameresourceservice.h"
 #include "../../sdk/interfaces/cgameentitysystem.h"
+#include "../../sdk/interfaces/ccsgoinput.h"
 #include "../../sdk/interfaces/iresourcesystem.h"
 #include "../../core/sdk.h"
 #include "../../sdk/entity.h"
@@ -77,9 +78,6 @@ bool F::VISUALS::CHAMS::OnDrawObject(void* pAnimatableSceneObjectDesc, void* pDx
 	if (!bInitialized)
 		return false;
 
-	if (!C_GET(bool, Vars.bVisualChams))
-		return false;
-
 	if (arrMeshDraw == nullptr)
 		return false;
 
@@ -102,6 +100,12 @@ bool F::VISUALS::CHAMS::OnDrawObject(void* pAnimatableSceneObjectDesc, void* pDx
 
 	auto pPlayerPawn = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(hOwner);
 	if (pPlayerPawn == nullptr)
+		return false;
+
+	if (C_GET(unsigned int, Vars.nRemovals) & ERemovalsDropdown::REMOVALS_LEGS && !I::Input->bInThirdPerson && pPlayerPawn == SDK::LocalPawn)
+		return true;
+
+	if (!C_GET(bool, Vars.bVisualChams))
 		return false;
 
 	if (!pPlayerPawn->IsOtherEnemy(SDK::LocalPawn))
