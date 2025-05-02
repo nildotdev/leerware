@@ -366,7 +366,8 @@ void F::MISC::MOVEMENT::AdjustAnglesForQuantizedMovement(CUserCmd* pCmd, CBaseUs
 	if (!pBaseCmd->flForwardMove && !pBaseCmd->flSideMove)
 		return;
 
-	if (pCmd->nButtons.nValue & IN_ATTACK)
+	// Don't interfere if attacking or ragebot is active
+	if (pCmd->nButtons.nValue & IN_ATTACK || C_GET(bool, Vars.bRageEnable))
 		return;
 
 	if (const int32_t nMoveType = pLocalPawn->GetMoveType(); nMoveType == MOVETYPE_NOCLIP || nMoveType == MOVETYPE_LADDER || pLocalPawn->GetWaterLevel() >= WL_WAIST)

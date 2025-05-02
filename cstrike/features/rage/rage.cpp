@@ -1,6 +1,9 @@
 #include "rage.h"
 #include <string>
 #include <sstream>
+#include <thread>
+#include <mutex>
+#include <atomic>
 
 // used: cheat variables
 #include "../../core/variables.h"
@@ -55,7 +58,24 @@ public:
 	CBaseHandle entity;
 };
 
+class ThreadSafeHitScanResult {
+public:
+	std::mutex mutex;
+	HitScanResult result;
+	std::atomic<bool> ready{false};
+	std::atomic<bool> processing{false};
+};
+
 HitScanTarget scanTarget{};
+ThreadSafeHitScanResult g_ThreadedResult;
+
+static bool g_AutoStopActive = false;
+static bool g_JustFired = false;
+static int g_LastShotTick = 0;
+static bool g_IsShooting = false;
+
+void ThreadedHitScan(C_CSPlayerPawn* pLocalPawn, C_CSPlayerPawn* target, CCSWeaponBaseVData* vData, 
+                     int multiPoint, int hitChance, int minDamage, Vector_t shootPos, QAngle_t aimPunch);
 
 C_CSPlayerPawn* F::RAGEBOT::RAGE::GetTarget()
 {
@@ -69,43 +89,72 @@ C_CSPlayerPawn* F::RAGEBOT::RAGE::GetTarget()
 
 void PickScanTarget(CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
-	scanTarget.entity = CBaseHandle{}; // Invalidate current target
+	scanTarget.entity = CBaseHandle{};
 	float flDistRecord = INFINITY;
+	float flFovRecord = 180.f;
+	int lowestHealth = 100;
 
-	ImVec2 screenSize = ImGui::GetIO().DisplaySize;
-	ImVec2 screenCenter = ImVec2(screenSize.x / 2, screenSize.y / 2);
+	Vector_t localPos = pLocalPawn->GetSceneOrigin();
+	Vector_t localEyePos = pLocalPawn->GetEyePosition();
+	
+	int selectionMode = 1;
+
 	for (CCSPlayerController* pPlayer : SDK::PlayerControllers)
 	{
-		// Check the entity is not us
 		if (pPlayer->IsLocalPlayerController())
 			continue;
 
-		// Make sure they're alive
 		if (!pPlayer->IsPawnAlive())
 			continue;
 
-		// Get the player pawn
 		C_CSPlayerPawn* pPawn = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(pPlayer->GetPawnHandle());
 		if (pPawn == nullptr)
 			continue;
 
-		// Check if they're an enemy
 		if (!pLocalPawn->IsOtherEnemy(pPawn))
 			continue;
 
-		Vector_t localPos = pLocalPawn->GetSceneOrigin();
 		Vector_t enemyPos = pPawn->GetSceneOrigin();
-		QAngle_t aimAngle = MATH::CalculateAngles(localPos, enemyPos);
-		float distance = MATH::CalculateFOVDistance(I::Input->vecViewAngle, aimAngle);
-
-		/*ImVec2 abc{};
-		if (!D::WorldToScreen(enemyPos, &abc))
-			continue;
 		
-		float distance = sqrtf(powf(screenCenter.x - abc.x, 2.f) + powf(screenCenter.y - abc.y, 2.f));*/
-		if (flDistRecord > distance)
+		float distance = localPos.DistTo(enemyPos);
+		QAngle_t aimAngle = MATH::CalculateAngles(localEyePos, enemyPos);
+		float fov = MATH::CalculateFOVDistance(I::Input->vecViewAngle, aimAngle);
+		int health = pPawn->GetHealth();
+		
+		bool isNewTarget = false;
+		
+		switch (selectionMode)
 		{
-			flDistRecord = distance;
+		case 0:
+			if (distance < flDistRecord) {
+				flDistRecord = distance;
+				isNewTarget = true;
+			}
+			break;
+			
+		case 1:
+			if (fov < flFovRecord) {
+				flFovRecord = fov;
+				isNewTarget = true;
+			}
+			break;
+			
+		case 2:
+			if (health < lowestHealth && health > 0) {
+				lowestHealth = health;
+				isNewTarget = true;
+			}
+			break;
+			
+		default:
+			if (fov < flFovRecord) {
+				flFovRecord = fov;
+				isNewTarget = true;
+			}
+			break;
+		}
+		
+		if (isNewTarget) {
 			scanTarget.entity = pPawn->GetRefEHandle();
 		}
 	}
@@ -118,31 +167,26 @@ CS_INLINE Vector_t CalculateSpread(C_CSWeaponBase* weapon, int seed, float inacc
 
 	if (!weapon)
 		return {};
-	// if we have no bullets, we have no spread.
 	auto wep_info = weapon->GetWeaponVData();
 	if (!wep_info)
 		return {};
 
-	// get some data for later.
 	item_def_index = wep_info->GetWeaponName();
 	recoil_index = weapon->GetRecoilIndex();
 
 	MATH::fnRandomSeed((seed & 0xff) + 1);
 
-	// generate needed floats.
 	r1 = MATH::fnRandomFloat(0.f, 1.f);
 	r2 = MATH::fnRandomFloat(0.f, MATH::_PI * 2);
 	r3 = MATH::fnRandomFloat(0.f, 1.f);
 	r4 = MATH::fnRandomFloat(0.f, MATH::_PI * 2);
 
-	// revolver secondary spread.
 	if (item_def_index == CS_XOR("weapon_revoler") && revolver2)
 	{
 		r1 = 1.f - (r1 * r1);
 		r3 = 1.f - (r3 * r3);
 	}
 
-	// negev spread.
 	else if (item_def_index == CS_XOR("weapon_negev") && recoil_index < 3.f)
 	{
 		for (int i{ 3 }; i > recoil_index; --i)
@@ -155,13 +199,11 @@ CS_INLINE Vector_t CalculateSpread(C_CSWeaponBase* weapon, int seed, float inacc
 		r3 = 1.f - r3;
 	}
 
-	// get needed sine / cosine values.
 	c1 = std::cos(r2);
 	c2 = std::cos(r4);
 	s1 = std::sin(r2);
 	s2 = std::sin(r4);
 
-	// calculate spread vector.
 	return {
 		(c1 * (r1 * inaccuracy)) + (c2 * (r3 * spread)),
 		(s1 * (r1 * inaccuracy)) + (s2 * (r3 * spread)),
@@ -298,26 +340,256 @@ void F::RAGEBOT::RAGE::AutoStop(C_CSPlayerPawn* pLocal, C_CSWeaponBase* pWeapon,
 	auto WeaponVData = pWeapon->GetWeaponVData();
 	if (!WeaponVData)
 		return;
-
+    
 	Vector_t localVelocity = pLocal->GetVecVelocity();
 	localVelocity.z = 0.f;
 	float speed = localVelocity.Length2D();
 	int fireType = 0;
+	
 	if (WeaponVData->GetWeaponType() == WEAPONTYPE_SNIPER_RIFLE)
 		fireType = 1;
 	if (pWeapon->IsBurstMode())
 		fireType = 1;
-	float maxSpeed = WeaponVData->GetMaxSpeed()[fireType] * 0.33000001f;
-
-	if (speed <= maxSpeed)
-		F::MISC::MOVEMENT::LimitSpeed(pBaseCmd, pLocal, maxSpeed);
-	else
-		F::MISC::MOVEMENT::QuickStop(pCmd, pBaseCmd, pLocal, true);
+	
+	float maxSpeed = WeaponVData->GetMaxSpeed()[fireType] * 0.03f;
+	
+	F::MISC::MOVEMENT::LimitSpeed(pBaseCmd, pLocal, maxSpeed);
+	g_AutoStopActive = true;
 }
 
 float currentFraction = 0.f;
-constexpr unsigned int HITBOX_MAX = 18; // Something like that?
+constexpr unsigned int HITBOX_MAX = 18;
 
+void ThreadedHitScan(C_CSPlayerPawn* pLocalPawn, C_CSPlayerPawn* target, CCSWeaponBaseVData* vData, 
+                    int multiPoint, int hitChance, int minDamage, Vector_t shootPos, QAngle_t aimPunch)
+{
+	g_ThreadedResult.processing = true;
+	
+	HitScanResult localResult{};
+	localResult.target = target;
+	localResult.canHit = false;
+	
+	if (!pLocalPawn || !target || !vData) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+	
+	CGameSceneNode* node = target->GetGameSceneNode();
+	if (node == nullptr) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	CSkeletonInstance* skeleton = node->GetSkeletonInstance();
+	if (skeleton == nullptr) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	CHitBoxSet* hitbox_set = target->GetHitboxSet(0);
+	if (hitbox_set == nullptr) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	auto& hitboxes = hitbox_set->GetHitboxes();
+	if (hitboxes.m_Size <= 0 || hitboxes.m_Size > 0xFFFF) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	auto hitbox_transform = reinterpret_cast<CTransform*>(I::MemAlloc->Alloc(sizeof(CTransform) * HITBOX_MAX));
+	if (hitbox_transform == nullptr) {
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	if (target->HitboxToWorldTransform(hitbox_set, hitbox_transform) == 0) {
+		I::MemAlloc->Free(hitbox_transform);
+		g_ThreadedResult.processing = false;
+		return;
+	}
+
+	int priorityHitboxes[HITBOX_MAX];
+	int priorityCount = 0;
+    
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_HEAD;
+	
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_CHEST;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_CHEST1;
+
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_STOMACH;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_PELVIS;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_PELVIS1;
+
+	bool ignoreLimbs = target->GetVecVelocity().Length2D() > 71.f;
+	if (!ignoreLimbs) {
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_LEFTUPPERARM;
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_RIGHTUPPERARM;
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_LEFTLOWERARM;
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_RIGHTLOWERARM;
+	}
+
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_LEFTUPPERLEG;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_RIGHTUPPERLEG;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_LEFTLOWERLEG;
+	priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_RIGHTLOWERLEG;
+
+	if (!ignoreLimbs) {
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_LEFTTOE;
+		priorityHitboxes[priorityCount++] = EHitboxes::HITBOX_RIGHTTOE;
+	}
+
+	Vector_t bestPoint;
+	QAngle_t bestAngle;
+	float bestDamage = 0.f;
+	float bestHitChance = 0.f;
+	int bestHitbox = -1;
+	bool foundPoint = false;
+
+	for (int p = 0; p < priorityCount; p++) {
+		int i = priorityHitboxes[p];
+		
+		if (i >= hitboxes.m_Size)
+			continue;
+			
+		CHitBox* hitbox = &hitboxes.m_Data[i];
+		if (hitbox == nullptr || hitbox->m_name == nullptr)
+			continue;
+
+		float radius = hitbox->m_flShapeRadius * (multiPoint / 100.f);
+		CTransform transform = hitbox_transform[i];
+		Vector_t min_bounds = hitbox->m_vMinBounds;
+		Vector_t max_bounds = hitbox->m_vMaxBounds;
+
+		Matrix3x4_t hitbox_matrix = hitbox_transform[i].ToMatrix3x4();
+		Vector_t mins = min_bounds.Transform(hitbox_matrix);
+		Vector_t maxs = max_bounds.Transform(hitbox_matrix);
+		Vector_t center = (mins + maxs) * 0.5f;
+
+		Vector_t points[8];
+		int pointCount = 0;
+
+		points[pointCount++] = center;
+
+		bool reducedPointCount = p > 2 && SDK::PlayerControllers.size() > 3;
+
+		if (i == EHitboxes::HITBOX_HEAD && multiPoint > 60 && !reducedPointCount) {
+			points[pointCount++] = Vector_t(center.x, center.y, maxs.z);
+			
+			if (multiPoint > 80) {
+				points[pointCount++] = Vector_t(maxs.x, center.y, center.z);
+				points[pointCount++] = Vector_t(mins.x, center.y, center.z);
+				points[pointCount++] = Vector_t(center.x, maxs.y, center.z);
+			}
+		}
+		else if ((i == EHitboxes::HITBOX_CHEST || i == EHitboxes::HITBOX_CHEST1) && multiPoint > 60 && !reducedPointCount) {
+			points[pointCount++] = Vector_t(center.x, maxs.y, center.z);
+		}
+		else if ((i == EHitboxes::HITBOX_STOMACH || i == EHitboxes::HITBOX_PELVIS || i == EHitboxes::HITBOX_PELVIS1) && multiPoint > 60 && !reducedPointCount) {
+			points[pointCount++] = Vector_t(center.x, maxs.y, center.z);
+		}
+		else if ((i == EHitboxes::HITBOX_LEFTUPPERLEG || i == EHitboxes::HITBOX_RIGHTUPPERLEG || 
+				 i == EHitboxes::HITBOX_LEFTLOWERLEG || i == EHitboxes::HITBOX_RIGHTLOWERLEG) && multiPoint > 60 && !reducedPointCount) {
+			points[pointCount++] = Vector_t(center.x, center.y, maxs.z);
+		}
+		
+		if (radius > 3.0f && pointCount < 8 && !reducedPointCount) {
+			float u = MATH::fnRandomFloat(0.f, 1.f);
+			float v = MATH::fnRandomFloat(0.f, 1.f);
+			float w = MATH::fnRandomFloat(0.f, 1.f);
+			float norm = std::sqrtf(u * u + v * v + w * w);
+
+			u /= norm;
+			v /= norm;
+			w /= norm;
+
+			points[pointCount++] = Vector_t(
+				center.x + radius * u * 0.8f,
+				center.y + radius * v * 0.8f,
+				center.z + radius * w * 0.8f
+			);
+		}
+
+		for (int j = 0; j < pointCount; j++) {
+			Vector_t scanPos = points[j];
+			
+			F::PENETRATION::c_auto_wall AutoWall{};
+			F::PENETRATION::c_auto_wall::data_t hitData{};
+			AutoWall.pen(hitData, shootPos, scanPos, pLocalPawn, target, vData);
+			
+			if (!hitData.m_can_hit)
+				continue;
+				
+			if (minDamage > hitData.m_dmg)
+				continue;
+				
+			QAngle_t aimAngle = MATH::CalculateAngles(shootPos, scanPos);
+			if (C_GET(bool, Vars.bHideshots))
+				aimAngle = QAngle_t(180 - aimAngle.x, MATH::NormalizeYaw(aimAngle.y + 180), aimAngle.z);
+			aimAngle -= aimPunch;
+			
+			float outChance = 0.f;
+			if (!F::RAGEBOT::RAGE::HitChance(pLocalPawn, target, scanPos, hitChance, i, &outChance)) {
+				continue;
+			}
+			
+			bool shouldSelect = false;
+			
+			if (!foundPoint) {
+				shouldSelect = true;
+			}
+			else if (p < bestHitbox && hitData.m_dmg >= minDamage) {
+				shouldSelect = true;
+			}
+			else if (i == bestHitbox && hitData.m_dmg > bestDamage) {
+				shouldSelect = true;
+			}
+			else if (hitData.m_dmg >= target->GetHealth() && bestDamage < target->GetHealth()) {
+				shouldSelect = true;
+			}
+			
+			if (shouldSelect) {
+				bestPoint = scanPos;
+				bestAngle = aimAngle;
+				bestDamage = hitData.m_dmg;
+				bestHitChance = outChance;
+				bestHitbox = i;
+				foundPoint = true;
+				
+				if (p <= 2 && hitData.m_dmg >= target->GetHealth()) {
+					break;
+				}
+			}
+		}
+		
+		if (foundPoint && p <= 2 && bestDamage >= target->GetHealth()) {
+			break;
+		}
+	}
+
+	I::MemAlloc->Free(hitbox_transform);
+	
+	if (foundPoint) {
+		localResult.aimAngle = bestAngle;
+		localResult.LCSimTime = target->GetSimulationTime();
+		localResult.LCTick = TIME_TO_TICKS(localResult.LCSimTime);
+		localResult.canHit = true;
+		localResult.hitbox = bestHitbox;
+		localResult.hitChance = bestHitChance;
+		localResult.damage = bestDamage;
+	}
+
+	{
+		std::lock_guard<std::mutex> lock(g_ThreadedResult.mutex);
+		g_ThreadedResult.result = localResult;
+		g_ThreadedResult.ready = true;
+	}
+	
+	g_ThreadedResult.processing = false;
+}
+
+// Modified HitScan function to use threading
 bool F::RAGEBOT::RAGE::HitScan(HitScanResult* result, CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
 	if (pLocalPawn == nullptr)
@@ -341,14 +613,6 @@ bool F::RAGEBOT::RAGE::HitScan(HitScanResult* result, CUserCmd* pCmd, CBaseUserC
 
 	C_CSPlayerPawn* target = result->target;
 	if (target == nullptr)
-		return false;
-
-	CGameSceneNode* node = target->GetGameSceneNode();
-	if (node == nullptr)
-		return false;
-
-	CSkeletonInstance* skeleton = node->GetSkeletonInstance();
-	if (skeleton == nullptr)
 		return false;
 
 	short currentWeapon = item->GetItemDefinitionIndex();
@@ -403,141 +667,39 @@ bool F::RAGEBOT::RAGE::HitScan(HitScanResult* result, CUserCmd* pCmd, CBaseUserC
 	if (cache.m_Size > 0 && cache.m_Size <= 0xFFFF)
 		aimPunch = cache.m_Data[cache.m_Size - 1] * 2;
 
-	CHitBoxSet* hitbox_set = target->GetHitboxSet(0);
-	if (hitbox_set == nullptr)
-		return false;
-
-	auto& hitboxes = hitbox_set->GetHitboxes();
-
-	if (hitboxes.m_Size <= 0 || hitboxes.m_Size > 0xFFFF)
-		return false;
-
-	auto hitbox_transform = reinterpret_cast<CTransform*>(I::MemAlloc->Alloc(sizeof(CTransform) * HITBOX_MAX));
-	if (hitbox_transform == nullptr)
-		return false;
-
-	if (target->HitboxToWorldTransform(hitbox_set, hitbox_transform) == 0)
-		return false;
-
-	for (int i = 0; i < HITBOX_MAX; i++)
-	{
-		CHitBox* hitbox = &hitboxes.m_Data[i];
-		if (hitbox == nullptr || hitbox->m_name == nullptr)
-			continue;
-
-		float radius = hitbox->m_flShapeRadius * (multiPoint / 100.f);
-		CTransform transform = hitbox_transform[i];
-		Vector_t min_bounds = hitbox->m_vMinBounds - radius;
-		Vector_t max_bounds = hitbox->m_vMaxBounds + radius;
-
-		Matrix3x4_t hitbox_matrix = hitbox_transform[i].ToMatrix3x4();
-		Vector_t mins = min_bounds.Transform(hitbox_matrix);
-		Vector_t maxs = max_bounds.Transform(hitbox_matrix);
-		Vector_t hitbox_pos = (mins + maxs) * 0.5f;
-
-		float u = MATH::fnRandomFloat(0.f, 1.f),
-			  v = MATH::fnRandomFloat(0.f, 1.f),
-			  w = MATH::fnRandomFloat(0.f, 1.f),
-			norm = std::sqrtf(u * u + v * v + w * w);
-
-		u /= norm;
-		v /= norm;
-		w /= norm;
-
-		Vector_t scanPos = Vector_t(
-			hitbox_pos.x + radius * u,
-			hitbox_pos.y + radius * v,
-			hitbox_pos.z + radius * w
-		);
-
-		F::PENETRATION::c_auto_wall AutoWall{};
-		F::PENETRATION::c_auto_wall::data_t hitData{};
-		AutoWall.pen(hitData, shootPos, scanPos, pLocalPawn, target, vData);
-		if (!hitData.m_can_hit)
-			continue;
-
-		if (minDamage > hitData.m_dmg)
-			continue;
-		result->damage = hitData.m_dmg;
-
-		QAngle_t aimAngle = MATH::CalculateAngles(shootPos, scanPos);
-		if (C_GET(bool, Vars.bHideshots))
-			aimAngle = QAngle_t(180 - aimAngle.x, MATH::NormalizeYaw(aimAngle.y + 180), aimAngle.z);
-		aimAngle -= aimPunch;
-
-		if (variables.bAutoScope && vData->GetWeaponType() == WEAPONTYPE_SNIPER_RIFLE && weapon->GetZoomLevel() < 1)
-		{
+	if (g_ThreadedResult.ready && g_ThreadedResult.result.target == target) {
+		std::lock_guard<std::mutex> lock(g_ThreadedResult.mutex);
+		*result = g_ThreadedResult.result;
+		
+		if (result->canHit && variables.bAutoScope && vData->GetWeaponType() == WEAPONTYPE_SNIPER_RIFLE && weapon->GetZoomLevel() < 1) {
 			pCmd->nButtons.nValue |= IN_SECOND_ATTACK;
 			pBaseCmd->PressButton(IN_SECOND_ATTACK);
-			return false; // Can't hit, must zoom first.
+			return false;
 		}
-
-		if (!HitChance(pLocalPawn, target, scanPos, hitChance, i, &result->hitChance))
-		{
-			if (variables.bAutoStop)
-				AutoStop(pLocalPawn, weapon, pCmd, pBaseCmd);
-			continue;
+		
+		if (!result->canHit && variables.bAutoStop) {
+			AutoStop(pLocalPawn, weapon, pCmd, pBaseCmd);
 		}
-
-		result->aimAngle = aimAngle;
-		result->LCSimTime = target->GetSimulationTime();
-		result->LCTick = TIME_TO_TICKS(result->LCSimTime);
-		result->canHit = true;
-		result->hitbox = i;
-		return true;
+		
+		g_ThreadedResult.ready = false;
+		return result->canHit;
 	}
 
-	I::MemAlloc->Free(hitbox_transform);
-
-	/*skeleton->CalculateWorldSpaceBones(EBoneFlags::FLAG_HITBOX);
-	auto& model_state = skeleton->GetModelState();
-	CModel* model = model_state.GetModel();
-	int num_bones = skeleton->nBoneCount;
-	Matrix2x4_t* bones = skeleton->pBoneCache;
-	for (auto i = 0u; i < num_bones; i++)
-	{
-		if (model->GetBoneFlags(i) & EBoneFlags::FLAG_HITBOX)
-		{
-			Vector_t boneOrigin = bones->GetOrigin(i);
-			F::PENETRATION::c_auto_wall AutoWall{};
-			F::PENETRATION::c_auto_wall::data_t hitData{};
-			AutoWall.pen(hitData, shootPos, boneOrigin, pLocalPawn, target, vData);
-			if (!hitData.m_can_hit)
-				continue;
-
-			if (minDamage > hitData.m_dmg)
-				continue;
-
-			QAngle_t aimAngle = MATH::CalculateAngles(shootPos, boneOrigin);
-			if (C_GET(bool, Vars.bHideshots))
-				aimAngle = QAngle_t(180 - aimAngle.x, MATH::NormalizeYaw(aimAngle.y + 180), aimAngle.z);
-			aimAngle -= aimPunch;
-
-			if (variables.bAutoScope && vData->GetWeaponType() == WEAPONTYPE_SNIPER_RIFLE && weapon->GetZoomLevel() < 1)
-			{
-				pCmd->nButtons.nValue |= IN_SECOND_ATTACK;
-				pBaseCmd->PressButton(IN_SECOND_ATTACK);
-				return false; // Can't hit, must zoom first.
-			}
-
-			unsigned int hitbox = HitboxBoneToHitboxId(i);
-			if (!HitChance(pLocalPawn, target, boneOrigin, hitChance, hitbox))
-			{
-				if (variables.bAutoStop)
-					AutoStop(pLocalPawn, weapon, pCmd, pBaseCmd);
-				continue;
-			}
-
-			result->aimAngle = aimAngle;
-			result->LCSimTime = target->GetSimulationTime();
-			result->LCTick = TIME_TO_TICKS(result->LCSimTime);
-			result->canHit = true;
-			result->hitbox = hitbox;
-			return true;
-		}
-	}*/
-
-	result->canHit = false;
+	if (!g_ThreadedResult.processing) {
+		g_ThreadedResult.ready = false;
+		
+		std::thread scanThread(ThreadedHitScan, pLocalPawn, target, vData, 
+			multiPoint, hitChance, minDamage, shootPos, aimPunch);
+			
+		scanThread.detach();
+	}
+	
+	if (g_ThreadedResult.result.target == target && g_ThreadedResult.result.canHit) {
+		std::lock_guard<std::mutex> lock(g_ThreadedResult.mutex);
+		*result = g_ThreadedResult.result;
+		return true;
+	}
+	
 	return false;
 }
 
@@ -583,9 +745,45 @@ void F::RAGEBOT::RAGE::AutoRevolver(C_CSPlayerPawn* pLocalPawn, CUserCmd* pCmd)
 void F::RAGEBOT::RAGE::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlayerController* pLocalController, C_CSPlayerPawn* pLocalPawn)
 {
 	if (!C_GET(bool, Vars.bRageEnable))
+	{
+		g_IsShooting = false;  // Reset shooting state if rage is disabled
 		return;
+	}
 
+	// Clear AutoStop if we just fired in previous tick
+	int currentTick = I::GlobalVars->nCurrentTick;
+	if (g_JustFired && currentTick > g_LastShotTick)
+	{
+		g_AutoStopActive = false;
+		g_JustFired = false;
+	}
+	
+	// Check if player has anti-aim enabled - don't interfere if it is
+	if (C_GET(bool, Vars.bAntiAimEnable) && pBaseCmd->pViewAngles)
+	{
+		// Anti-aim is active, don't modify view angles from rage
+		g_IsShooting = false;
+		return;
+	}
+	
 	AutoRevolver(pLocalPawn, pCmd);
+	
+	// Check if player can attack
+	if (!pLocalPawn->CanAttack())
+	{
+		// Don't modify view angles if we can't shoot
+		g_IsShooting = false;
+		return;
+	}
+	
+	// Get weapon
+	C_CSWeaponBaseGun* weapon = pLocalPawn->GetCurrentWeapon();
+	if (weapon == nullptr)
+	{
+		g_IsShooting = false;
+		return;
+	}
+	
 	PickScanTarget(pLocalController, pLocalPawn);
 
 	C_CSPlayerPawn* target = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(scanTarget.entity);
@@ -593,31 +791,97 @@ void F::RAGEBOT::RAGE::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlaye
 	{
 		PickScanTarget(pLocalController, pLocalPawn);
 		if (!scanTarget.entity.IsValid())
+		{
+			g_IsShooting = false;  // Stop shooting if no valid target
 			return;
+		}
 		target = I::GameResourceService->pGameEntitySystem->Get<C_CSPlayerPawn>(scanTarget.entity);
 	}
 
 	HitScanResult result{};
 	result.target = target;
-	bool canHit = HitScan(&result, pCmd, pBaseCmd, pLocalController, pLocalPawn);
-	if (!canHit)
+	
+	RageBotVars_t variables = C_GET(RageBotVars_t, Vars.varsGlobal);
+	
+	auto weaponData = weapon->GetWeaponVData();
+	if (!weaponData)
 	{
-		result = HitScanResult{}; // Make a new result object
-		result.target = target;
-		F::LAGCOMP::Apply(target, 0); // Apply the latest record saved
-		canHit = HitScan(&result, pCmd, pBaseCmd, pLocalController, pLocalPawn); // Scan again
-		F::LAGCOMP::Restore(target); // Restore to backup
-		if (!canHit)
-			return;
+		g_IsShooting = false;
+		return;
+	}
+	
+	C_AttributeContainer* attribs = weapon->GetAttributeManager();
+	if (attribs)
+	{
+		C_EconItemView* item = attribs->GetItem();
+		if (item)
+		{
+			short currentWeapon = item->GetItemDefinitionIndex();
+			switch (currentWeapon)
+			{
+			case WEAPON_SSG_08:
+				variables = C_GET(RageBotVars_t, Vars.varsScout);
+				break;
+			case WEAPON_G3SG1:
+			case WEAPON_SCAR_20:
+				variables = C_GET(RageBotVars_t, Vars.varsAuto);
+				break;
+			case WEAPON_AWP:
+				variables = C_GET(RageBotVars_t, Vars.varsAWP);
+				break;
+			case WEAPON_DESERT_EAGLE:
+				variables = C_GET(RageBotVars_t, Vars.varsDeagle);
+				break;
+			case WEAPON_R8_REVOLVER:
+				variables = C_GET(RageBotVars_t, Vars.varsR8);
+				break;
+			default:
+				if (weaponData->GetWeaponType() == WEAPONTYPE_PISTOL)
+					variables = C_GET(RageBotVars_t, Vars.varsPistols);
+				break;
+			}
+		}
 	}
 
-	if (!pLocalPawn->CanAttack())
+	bool canHit = HitScan(&result, pCmd, pBaseCmd, pLocalController, pLocalPawn);
+	
+	if (canHit && variables.bAutoStop && !g_AutoStopActive)
+	{
+		AutoStop(pLocalPawn, weapon, pCmd, pBaseCmd);
+	}
+	
+	if (!canHit)
+	{
+		result = HitScanResult{};
+		result.target = target;
+		F::LAGCOMP::Apply(target, 0);
+		canHit = HitScan(&result, pCmd, pBaseCmd, pLocalController, pLocalPawn);
+		F::LAGCOMP::Restore(target);
+		
+		if (canHit && variables.bAutoStop && !g_AutoStopActive)
+		{
+			AutoStop(pLocalPawn, weapon, pCmd, pBaseCmd);
+		}
+			
+		if (!canHit)
+		{
+			g_IsShooting = false;
+			return;
+		}
+	}
+
+	if (weapon->GetNextPrimaryAttackTick() > I::GlobalVars->nCurrentTick && g_IsShooting == false)
+	{
 		return;
+	}
 
 	CBaseHandle ControllerHandle = result.target->GetControllerHandle();
 	auto TargetController = I::GameResourceService->pGameEntitySystem->Get<CCSPlayerController>(ControllerHandle);
 	if (TargetController == nullptr)
+	{
+		g_IsShooting = false;
 		return;
+	}
 
 	SDK::fnConColorMsg(Color_t(0.f, 0.f, 1.f), "RAGEBOT DEBUG START\n");
 	std::ostringstream debugMessage{};
@@ -626,13 +890,37 @@ void F::RAGEBOT::RAGE::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlaye
 
 	QAngle_t aimAngle = result.aimAngle;
 	debugMessage << "Shot angle: (" << aimAngle.x << ", " << aimAngle.y << ", " << aimAngle.z << ")\n";
+	
 	if (C_GET(bool, Vars.bHideshots))
 		aimAngle.x -= 40;
-	pBaseCmd->pViewAngles->angValue = aimAngle;
-	pBaseCmd->pViewAngles->SetBits(EBaseCmdBits::BASE_BITS_VIEWANGLES);
-	pBaseCmd->PressButton(IN_ATTACK);
+	
+	if (canHit && pBaseCmd->pViewAngles)
+	{
+		pBaseCmd->pViewAngles->angValue = aimAngle;
+		pBaseCmd->pViewAngles->SetBits(EBaseCmdBits::BASE_BITS_VIEWANGLES);
+		
+		if (!g_IsShooting)
+		{
+			debugMessage << "Starting to shoot...\n";
+			pBaseCmd->PressButton(IN_ATTACK);
+			g_IsShooting = true;
+			
+			g_JustFired = true;
+			g_LastShotTick = currentTick;
+		}
+		else
+		{
+			debugMessage << "Continuing to shoot...\n";
+		}
+		
+		pCmd->nButtons.nValue |= IN_ATTACK;
+	}
+	else
+	{
+		g_IsShooting = false;
+	}
+	
 	debugMessage << "Sub-tick attack fraction: " << I::GlobalVars->flTickFraction1 << "\n";
-	pCmd->nButtons.nValue |= IN_ATTACK;
 
 	int originalTickCount = -1;
 	if (pCmd->csgoUserCmd.inputHistoryField.pRep->nAllocatedSize > 0)
