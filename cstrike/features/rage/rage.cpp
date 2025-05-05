@@ -660,23 +660,23 @@ void F::RAGEBOT::RAGE::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlaye
 
 	CCSGOInterpolationInfoPB* sv_interp0 = pInputEntry->CreateInterp();
 	sv_interp0->flFraction = 0.f;
-	sv_interp0->nSrcTick = tick;
-	sv_interp0->nDstTick = tick + 1;
-	sv_interp0->nCachedBits = 47244640263;
+	sv_interp0->nSrcTick = tick - 2;
+	sv_interp0->nDstTick = tick - 1;
+	sv_interp0->nCachedBits = 55834574855;
 	pInputEntry->sv_interp0 = sv_interp0;
 
 	CCSGOInterpolationInfoPB* sv_interp1 = pInputEntry->CreateInterp();
 	sv_interp1->flFraction = 0.f;
-	sv_interp1->nSrcTick = tick + 1;
-	sv_interp1->nDstTick = tick + 2;
-	sv_interp1->nCachedBits = 47244640263;
+	sv_interp1->nSrcTick = tick - 1;
+	sv_interp1->nDstTick = tick;
+	sv_interp1->nCachedBits = 55834574855;
 	pInputEntry->sv_interp1 = sv_interp1;
 
 	CCSGOInterpolationInfoPB* player_interp = pInputEntry->CreateInterp();
 	player_interp->flFraction = MATH::Max(cl_interp->flFraction - 0.05f, 0.f);
-	player_interp->nSrcTick = tick + 1;
-	player_interp->nDstTick = tick + 2;
-	player_interp->nCachedBits = 47244640263;
+	player_interp->nSrcTick = tick - 1;
+	player_interp->nDstTick = tick;
+	player_interp->nCachedBits = 55834574855;
 	pInputEntry->player_interp = player_interp;
 
 	pInputEntry->nRenderTickCount = tick + 2;
@@ -684,7 +684,7 @@ void F::RAGEBOT::RAGE::OnMove(CUserCmd* pCmd, CBaseUserCmdPB* pBaseCmd, CCSPlaye
 
 	pInputEntry->nPlayerTickCount = originalTickCount < 0 ? I::GlobalVars->nCurrentTick : originalTickCount;
 	pInputEntry->flPlayerTickFraction = I::GlobalVars->flTickFraction1;
-	pInputEntry->nCachedBits = 339302424095;
+	pInputEntry->nCachedBits = 373662162463;
 
 	debugMessage << "Finished constructing input entry.\nLC Delta: " << pInputEntry->nPlayerTickCount - tick << "\n";
 
