@@ -526,9 +526,28 @@ bool D::OnWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		const auto oIsRelativeMouseMode = H::hkIsRelativeMouseMode.GetOriginal();
 		oIsRelativeMouseMode(I::InputSystem, MENU::bMainWindowOpened ? false : MENU::bMainActive);
 	}
+	bool bIgnoreMessage = false;
+	switch (uMsg)
+	{
+	case WM_LBUTTONDBLCLK:
+	case WM_LBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_MBUTTONDBLCLK:
+	case WM_MBUTTONDOWN:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONDBLCLK:
+	case WM_RBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_MOUSEACTIVATE:
+	case WM_MOUSEHOVER:
+	case WM_MOUSELEAVE:
+	case WM_MOUSEMOVE:
+		bIgnoreMessage = true;
+		break;
+	}
 
 	// handle ImGui's window messages and block game's input if menu is opened
-	return ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam) || MENU::bMainWindowOpened;
+	return ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam) || (bIgnoreMessage && MENU::bMainWindowOpened);
 }
 
 void D::NewFrame()
