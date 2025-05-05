@@ -71,7 +71,10 @@ void F::MISC::MOVEMENT::JumpBug(CUserCmd* pCmd, C_CSPlayerPawn* pLocalPawn)
 
 	bool willHitGround = !(g_PredictionSystem->GetOldFlags() & FL_ONGROUND) && pLocalPawn->GetFlags() & FL_ONGROUND;
 	if (willHitGround)
+	{
+		pCmd->nButtons.nValue &= ~IN_JUMP;
 		pCmd->nButtons.nValue |= IN_DUCK;
+	}
 }
 
 void F::MISC::MOVEMENT::EdgeJump(CUserCmd* pCmd, C_CSPlayerPawn* pLocalPawn)
